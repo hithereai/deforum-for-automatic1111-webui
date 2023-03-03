@@ -194,8 +194,42 @@ def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
         borderMode=cv2.BORDER_WRAP if anim_args.border == 'wrap' else cv2.BORDER_REPLICATE
     )
 
+
+
+
+def save_depth_map(depth_map_tensor, filename):
+    print("Saving depth map from matplot")
+    import matplotlib.pyplot as plt
+    # Convert the tensor to a numpy array
+    depth_map = depth_map_tensor.cpu().numpy()
+
+    # Normalize the depth values to the range [0, 1]
+    depth_map -= depth_map.min()
+    depth_map /= depth_map.max()
+
+    # Save the depth map as an image file
+    plt.imsave(filename, depth_map, cmap='jet')
+
+def convert_depth_to_positive(depth_tensor):
+    """
+    Converts a PyTorch tensor containing depth values from MIDAS v3.1 to positive values.
+    """
+    # Find the absolute value of the smallest depth value
+    min_depth = torch.min(depth_tensor)
+    min_depth_abs = torch.abs(min_depth)
+
+    # Add the absolute value of the smallest depth value to all depth values
+    depth_tensor_positive = depth_tensor + min_depth_abs
+
+    return depth_tensor_positive
+
 def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
+    # depth = convert_depth_to_positive(depth)
+    if depth is not None:
+        print(f"*** Depth: {depth} ***")
+        save_depth_map(depth, f"depth_{[frame_idx]}.png")
     TRANSLATION_SCALE = 1.0/200.0 # matches Disco
+    # TRANSLATION_SCALE = 1.0 # matches Disco
     translate_xyz = [
         -keys.translation_x_series[frame_idx] * TRANSLATION_SCALE, 
         keys.translation_y_series[frame_idx] * TRANSLATION_SCALE, 

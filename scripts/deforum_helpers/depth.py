@@ -31,7 +31,7 @@ class DepthModel():
         self.adabins_helper = InferenceHelper(models_path=models_path, dataset='nyu', device=self.device)
 
     def load_midas(self, models_path, half_precision=True, midas_model_name='dpt_large-midas-2f21e586.pt'):
-        if midas_model_name == 'dpt_large-midas-2f21e586.pt':
+        if midas_model_name =='dpt_large-midas-2f21e586.pt':
             if not os.path.exists(os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')):
                 from basicsr.utils.download_util import load_file_from_url
                 load_file_from_url(r"https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", models_path)
