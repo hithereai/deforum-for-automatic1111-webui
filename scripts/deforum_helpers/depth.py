@@ -31,17 +31,25 @@ class DepthModel():
         self.adabins_helper = InferenceHelper(models_path=models_path, dataset='nyu', device=self.device)
 
     def load_midas(self, models_path, half_precision=True, midas_model_name='dpt_large-midas-2f21e586.pt'):
-        if not os.path.exists(os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')):
-            from basicsr.utils.download_util import load_file_from_url
-            load_file_from_url(r"https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", models_path)
-            if checksum(os.path.join(models_path,'dpt_large-midas-2f21e586.pt')) != "fcc4829e65d00eeed0a38e9001770676535d2e95c8a16965223aba094936e1316d569563552a852d471f310f83f597e8a238987a26a950d667815e08adaebc06":
-                raise Exception(r"Error while downloading dpt_large-midas-2f21e586.pt. Please download from here: https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt and place in: " + models_path)
-                
+        if midas_model_name == 'dpt_large-midas-2f21e586.pt':
+            if not os.path.exists(os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')):
+                from basicsr.utils.download_util import load_file_from_url
+                load_file_from_url(r"https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", models_path)
+                if checksum(os.path.join(models_path,'dpt_large-midas-2f21e586.pt')) != "fcc4829e65d00eeed0a38e9001770676535d2e95c8a16965223aba094936e1316d569563552a852d471f310f83f597e8a238987a26a950d667815e08adaebc06":
+                    raise Exception(r"Error while downloading dpt_large-midas-2f21e586.pt. Please download from here: https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt and place in: " + models_path)
+        else:
+            if not os.path.exists(os.path.join(models_path, 'dpt_beit_large_384.pt')):
+                from basicsr.utils.download_util import load_file_from_url
+                load_file_from_url(r"https://github.com/isl-org/MiDaS/releases/download/v3_1/dpt_beit_large_384.pt", models_path)
+                # if checksum(os.path.join(models_path,'dpt_large-midas-2f21e586.pt')) != "fcc4829e65d00eeed0a38e9001770676535d2e95c8a16965223aba094936e1316d569563552a852d471f310f83f597e8a238987a26a950d667815e08adaebc06":
+                    # raise Exception(r"Error while downloading dpt_large-midas-2f21e586.pt. Please download from here: https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt and place in: " + models_path)
+                            
         if midas_model_name == 'dpt_large-midas-2f21e586.pt':
             t_backbone = 'vitl16_384'
         else:
             t_backbone = 'beitl16_384'
 
+        print(f"*** Midas model: {midas_model_name} ***")
         self.midas_model = DPTDepthModel(
             path=f"{models_path}/{midas_model_name}",
             backbone=t_backbone,
