@@ -100,7 +100,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     predict_depths = predict_depths or (anim_args.hybrid_composite and anim_args.hybrid_comp_mask_type in ['Depth','Video Depth'])
     if predict_depths:
         depth_model = DepthModel('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
-        depth_model.load_midas(root.models_path, root.half_precision)
+        depth_model.load_midas(root.models_path, root.half_precision, args.midas_model_name)
         if anim_args.midas_weight < 1.0:
             depth_model.load_adabins(root.models_path)
         # depth-based hybrid composite mask requires saved depth maps

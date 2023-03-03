@@ -145,6 +145,8 @@ def DeforumAnimPrompts():
     """
 
 def DeforumArgs():
+
+    midas_model_name = 'dpt_large-midas-2f21e586.pt'
     #**Image Settings**
     W = 512 #
     H = 512 #
@@ -336,6 +338,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
         with gr.Tab('Run'):
             from modules.sd_samplers import samplers_for_img2img
             with gr.Row(variant='compact'):
+                midas_model_name = gr.Dropdown(label="Midas model", choices=['dpt_large-midas-2f21e586.pt','dpt_beit_large_384.pt'], value=d.midas_model_name, type="value", elem_id="midas_model_name", interactive=True)
                 sampler = gr.Dropdown(label="Sampler", choices=[x.name for x in samplers_for_img2img], value=samplers_for_img2img[0].name, type="value", elem_id="sampler", interactive=True)
                 steps = gr.Slider(label="Steps", minimum=0, maximum=200, step=1, value=d.steps, interactive=True)
             with gr.Row(variant='compact'):
@@ -1025,7 +1028,7 @@ hybrid_args_names =   str(r'''hybrid_generate_inputframes, hybrid_generate_human
                         hybrid_comp_alpha_schedule, hybrid_comp_mask_blend_alpha_schedule, hybrid_comp_mask_contrast_schedule,
                         hybrid_comp_mask_auto_contrast_cutoff_high_schedule, hybrid_comp_mask_auto_contrast_cutoff_low_schedule'''
                     ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
-args_names =    str(r'''W, H, tiling, restore_faces,
+args_names =    str(r'''W, H, midas_model_name, tiling, restore_faces,
                         seed, sampler,
                         seed_enable_extras, seed_resize_from_w, seed_resize_from_h,
                         steps, ddim_eta,
