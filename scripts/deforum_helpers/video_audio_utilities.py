@@ -211,7 +211,6 @@ def find_ffmpeg_binary():
             ffmpeg_path = files[0] if files else 'ffmpeg'
             venv_index = ffmpeg_path.find(os.sep + 'venv' + os.sep + 'lib')
             if venv_index != -1:
-                venv_path = ffmpeg_path[:venv_index]
                 ffmpeg_path = ffmpeg_path[venv_index-5+len(os.sep+'venv'+os.sep):]
             return ffmpeg_path
         except:
