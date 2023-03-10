@@ -208,7 +208,12 @@ def find_ffmpeg_binary():
             package_path = resource_filename(package, 'binaries')
             files = [os.path.join(package_path, f) for f in os.listdir(package_path) if f.startswith("ffmpeg-")]
             files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-            return files[0] if files else 'ffmpeg'
+            ffmpeg_path = files[0] if files else 'ffmpeg'
+            venv_index = ffmpeg_path.find(os.sep + 'venv' + os.sep + 'lib')
+            if venv_index != -1:
+                venv_path = ffmpeg_path[:venv_index]
+                ffmpeg_path = ffmpeg_path[venv_index-5+len(os.sep+'venv'+os.sep):]
+            return ffmpeg_path
         except:
             return 'ffmpeg'
             
