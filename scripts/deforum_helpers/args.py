@@ -146,6 +146,8 @@ def DeforumAnimPrompts():
     """
 
 def DeforumArgs():
+    enable_batch_sett_file_mode = False
+    batch_sett_file_list = False
     #**Image Settings**
     W = 512 #
     H = 512 #
@@ -354,6 +356,11 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         ddim_eta = gr.Number(label="DDIM Eta", value=d.ddim_eta, interactive=True)
                     with gr.Row(variant='compact') as pix2pix_img_cfg_scale_row:
                         pix2pix_img_cfg_scale_schedule = gr.Textbox(label="Pix2Pix img CFG schedule", value=da.pix2pix_img_cfg_scale_schedule, interactive=True)    
+                with gr.Accordion('Batch Mode', open=True):
+                    with gr.Row():
+                        enable_batch_sett_file_mode = gr.Checkbox(label="Enable Batch mode", value=d.enable_batch_sett_file_mode, interactive=True)
+                    with gr.Row():
+                        batch_sett_file_list = gr.Textbox(label="Batch setting files", lines=3, interactive=True, value="list of full paths to setting files")
                 # RUN FROM SETTING FILE ACCORD
                 with gr.Accordion('Resume & Run from file', open=False):
                     with gr.Tab('Run from Settings file'):
@@ -1041,6 +1048,7 @@ hybrid_args_names =   str(r'''hybrid_generate_inputframes, hybrid_generate_human
                         hybrid_comp_mask_auto_contrast_cutoff_high_schedule, hybrid_comp_mask_auto_contrast_cutoff_low_schedule'''
                     ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
 args_names =    str(r'''W, H, tiling, restore_faces,
+                        enable_batch_sett_file_mode, batch_sett_file_list, 
                         seed, sampler,
                         seed_enable_extras, seed_resize_from_w, seed_resize_from_h,
                         steps, ddim_eta,
