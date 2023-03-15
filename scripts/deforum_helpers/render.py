@@ -2,11 +2,14 @@ import os
 import json
 import pandas as pd
 import cv2
+import re
 import numpy as np
+import itertools
+import numexpr
 from PIL import Image, ImageOps
 from .rich import console
 
-from .generate import generate
+from .generate import generate, isJson
 from .noise import add_noise
 from .animation import sample_from_cv2, sample_to_cv2, anim_frame_warp
 from .animation_key_frames import DeformAnimKeys, LooperAnimKeys
@@ -17,7 +20,7 @@ from .parseq_adapter import ParseqAnimKeys
 from .seed import next_seed
 from .blank_frame_reroll import blank_frame_reroll
 from .image_sharpening import unsharp_mask
-from .load_images import get_mask, load_img, get_mask_from_file
+from .load_images import get_mask, load_img, load_image, get_mask_from_file
 from .hybrid_video import (
     hybrid_generation, hybrid_composite, get_matrix_for_hybrid_motion, get_matrix_for_hybrid_motion_prev, get_flow_for_hybrid_motion,get_flow_for_hybrid_motion_prev,
     image_transform_ransac, image_transform_optical_flow, get_flow_from_images, abs_flow_to_rel_flow, rel_flow_to_abs_flow)
@@ -37,6 +40,15 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             # path required by hybrid functions, even if hybrid_comp_save_extra_frames is False
             hybrid_frame_path = os.path.join(args.outdir, 'hybridframes')
 
+        if loop_args.use_looper:
+            print("Using Guided Images mode: seed_behavior will be set to 'schedule' and 'strength_0_no_init' to False")
+            if args.strength == 0:
+                raise RuntimeError("Strength needs to be greater than 0 in Init tab")
+            args.strength_0_no_init = False
+            args.seed_behavior = "schedule"
+            if not isJson(loop_args.init_images):
+                raise RuntimeError("The images set for use with keyframe-guidance are not in a proper JSON format")
+
     # handle controlnet video input frames generation
     if is_controlnet_enabled(controlnet_args):
         unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root)
@@ -44,8 +56,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     # use parseq if manifest is provided
     use_parseq = parseq_args.parseq_manifest != None and parseq_args.parseq_manifest.strip()
     # expand key frame strings to values
-    keys = DeformAnimKeys(anim_args) if not use_parseq else ParseqAnimKeys(parseq_args, anim_args, video_args)
-    loopSchedulesAndData = LooperAnimKeys(loop_args, anim_args)
+    keys = DeformAnimKeys(anim_args, args.seed) if not use_parseq else ParseqAnimKeys(parseq_args, anim_args, video_args)
+    loopSchedulesAndData = LooperAnimKeys(loop_args, anim_args, args.seed)
     # resume animation
     start_frame = 0
     if anim_args.resume_from_timestring:
@@ -80,8 +92,12 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         prompt_series = keys.prompts
     else:
         prompt_series = pd.Series([np.nan for a in range(anim_args.max_frames)])
+        max_f = anim_args.max_frames - 1
         for i, prompt in animation_prompts.items():
-            prompt_series[int(i)] = prompt
+            if str(i).isdigit():
+                prompt_series[int(i)] = prompt
+            else:
+                prompt_series[int(numexpr.evaluate(i))] = prompt
         prompt_series = prompt_series.ffill().bfill()
 
     # check for video inits
@@ -157,6 +173,12 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     elif mask_image is None and args.use_mask:
         mask_vals['video_mask'] = get_mask(args)
         noise_mask_vals['video_mask'] = get_mask(args) # TODO?: add a different default noisc mask
+
+    # get color match for 'Image' color coherence only once, before loop
+    if anim_args.color_coherence == 'Image':
+        color_match_sample = load_image(anim_args.color_coherence_image_path)
+        color_match_sample = color_match_sample.resize((args.W, args.H), Image.Resampling.LANCZOS)
+        color_match_sample = cv2.cvtColor(np.array(color_match_sample), cv2.COLOR_RGB2BGR)
 
     #Webui
     state.job_count = anim_args.max_frames
@@ -302,6 +324,15 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             if turbo_next_image is not None:
                 prev_img = turbo_next_image
 
+        # get color match for video outside of prev_img conditional
+        hybrid_available = anim_args.hybrid_composite or anim_args.hybrid_motion in ['Optical Flow', 'Affine', 'Perspective']
+        if anim_args.color_coherence == 'Video Input' and hybrid_available:
+            if int(frame_idx) % int(anim_args.color_coherence_video_every_N_frames) == 0:
+                prev_vid_img = Image.open(os.path.join(args.outdir, 'inputframes', get_frame_name(anim_args.video_init_path) + f"{frame_idx+1:09}.jpg"))
+                prev_vid_img = prev_vid_img.resize((args.W, args.H), Image.Resampling.LANCZOS)
+                color_match_sample = np.asarray(prev_vid_img)
+                color_match_sample = cv2.cvtColor(color_match_sample, cv2.COLOR_RGB2BGR)
+
         # apply transforms to previous frame
         if prev_img is not None:
             prev_img, depth = anim_frame_warp(prev_img, args, anim_args, keys, frame_idx, depth_model, depth=None, device=root.device, half_precision=root.half_precision)
@@ -327,15 +358,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
             # apply color matching
             if anim_args.color_coherence != 'None':
-                # video color matching
-                hybrid_available = anim_args.hybrid_composite or anim_args.hybrid_motion in ['Optical Flow', 'Affine', 'Perspective']
-                if anim_args.color_coherence == 'Video Input' and hybrid_available:
-                    video_color_coherence_frame = int(frame_idx) % int(anim_args.color_coherence_video_every_N_frames) == 0
-                    if video_color_coherence_frame:
-                        prev_vid_img = Image.open(os.path.join(args.outdir, 'inputframes', get_frame_name(anim_args.video_init_path) + f"{frame_idx:09}.jpg"))
-                        prev_vid_img = prev_vid_img.resize((args.W, args.H), Image.Resampling.LANCZOS)
-                        color_match_sample = np.asarray(prev_vid_img)
-                        color_match_sample = cv2.cvtColor(color_match_sample, cv2.COLOR_RGB2BGR)
                 if color_match_sample is None:
                     color_match_sample = prev_img.copy()
                 else:
@@ -388,8 +410,18 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             args.seed_enable_extras = True
             args.subseed = int(keys.subseed_series[frame_idx])
             args.subseed_strength = keys.subseed_strength_series[frame_idx]
-            
-        prompt_to_print, *after_neg = args.prompt.strip().split("--neg")
+        
+        max_f = anim_args.max_frames - 1
+        pattern = r'`.*?`'
+        regex = re.compile(pattern)
+        prompt_parsed = args.prompt
+        for match in regex.finditer(prompt_parsed):
+            matched_string = match.group(0)
+            parsed_string = matched_string.replace('t', f'{frame_idx}').replace("max_f" , f"{max_f}").replace('`','')
+            parsed_value = numexpr.evaluate(parsed_string)
+            prompt_parsed = prompt_parsed.replace(matched_string, str(parsed_value))
+
+        prompt_to_print, *after_neg = prompt_parsed.strip().split("--neg")
         prompt_to_print = prompt_to_print.strip()
         after_neg = "".join(after_neg).strip()
 
@@ -397,12 +429,17 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         print(f"\033[35mPrompt: \033[0m{prompt_to_print}")
         if after_neg and after_neg.strip():
             print(f"\033[91mNeg Prompt: \033[0m{after_neg}")
+            prompt_to_print += f"--neg {after_neg}"
+
+        # set value back into the prompt
+        args.prompt = prompt_to_print
 
         # grab init image for current frame
         if using_vid_init:
             init_frame = get_next_frame(args.outdir, anim_args.video_init_path, frame_idx, False)
             print(f"Using video init frame {init_frame}")
             args.init_image = init_frame
+            args.strength = max(0.0, min(1.0, strength))
         if anim_args.use_mask_video:
             args.mask_file = get_mask_from_file(get_next_frame(args.outdir, anim_args.video_mask_path, frame_idx, True), args)
             args.noise_mask = get_mask_from_file(get_next_frame(args.outdir, anim_args.video_mask_path, frame_idx, True), args)
@@ -437,6 +474,14 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         # sample the diffusion model
         image = generate(args, keys, anim_args, loop_args, controlnet_args, root, frame_idx, sampler_name=scheduled_sampler_name)
         patience = 10
+
+        # color matching on first frame is after generation, color match was collected earlier
+        if frame_idx == 0:
+            if anim_args.color_coherence == 'Image' or (anim_args.color_coherence == 'Video Input' and hybrid_available):
+                image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+                image = maintain_colors(image, color_match_sample, anim_args.color_coherence)
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                image = Image.fromarray(image)
 
         # intercept and override to grayscale
         if anim_args.color_force_grayscale:

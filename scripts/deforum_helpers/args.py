@@ -5,7 +5,7 @@ import modules.shared as sh
 import modules.paths as ph
 import os
 from .frame_interpolation import set_interp_out_fps, gradio_f_interp_get_fps_and_fcount, process_interp_vid_upload_logic, process_interp_pics_upload_logic
-from .upscaling import process_upscale_vid_upload_logic, process_ncnn_upscale_vid_upload_logic
+from .upscaling import process_ncnn_upscale_vid_upload_logic
 from .vid2depth import process_depth_vid_upload_logic
 from .video_audio_utilities import find_ffmpeg_binary, ffmpeg_stitch_video, direct_stitch_vid_from_frames, get_quick_vid_info, extract_number
 from .gradio_funcs import *
@@ -61,7 +61,7 @@ def DeforumAnimArgs():
     aspect_ratio_schedule = "0: (1)"
     near_schedule = "0: (200)"
     far_schedule = "0: (10000)"
-    seed_schedule = "0:(5), 1:(-1), 219:(-1), 220:(5)"
+    seed_schedule = '0:(s), 1:(-1), "max_f-2":(-1), "max_f-1":(s)'
     pix2pix_img_cfg_scale = "1.5"
     pix2pix_img_cfg_scale_schedule = "0:(1.5)"
     enable_subseed_scheduling = False
@@ -95,7 +95,8 @@ def DeforumAnimArgs():
     hybrid_comp_mask_auto_contrast_cutoff_high_schedule =  "0:(100)" 
     hybrid_comp_mask_auto_contrast_cutoff_low_schedule =  "0:(0)" 
     #Coherence
-    color_coherence = 'Match Frame 0 LAB' #['None', 'Match Frame 0 HSV', 'Match Frame 0 LAB', 'Match Frame 0 RGB', 'Video Input'] {type:'string'}
+    color_coherence = 'LAB' # ['None', 'HSV', 'LAB', 'RGB', 'Video Input', 'Image']
+    color_coherence_image_path = ""
     color_coherence_video_every_N_frames = 1
     color_force_grayscale = False 
     diffusion_cadence = '2' #['1','2','3','4','5','6','7','8']
@@ -197,7 +198,7 @@ def DeforumArgs():
 
     #**Init Settings**
     use_init = False 
-    strength = 0.0 
+    strength = 0.8
     strength_0_no_init = True # Set the strength to 0 automatically when no init image is used
     init_image = "https://deforum.github.io/a1/I1.png" 
     # Whiter areas of the mask are areas that change more
@@ -237,10 +238,10 @@ def DeforumArgs():
 def keyframeExamples():
     return '''{
     "0": "https://deforum.github.io/a1/Gi1.png",
-    "50": "https://deforum.github.io/a1/Gi2.png",
-    "100": "https://deforum.github.io/a1/Gi3.png",
-    "150": "https://deforum.github.io/a1/Gi4.jpg",
-    "200": "https://deforum.github.io/a1/Gi1.png"
+    "max_f/4-5": "https://deforum.github.io/a1/Gi2.png",
+    "max_f/2-10": "https://deforum.github.io/a1/Gi3.png",
+    "3*max_f/4-15": "https://deforum.github.io/a1/Gi4.jpg",
+    "max_f-20": "https://deforum.github.io/a1/Gi1.png"
 }'''
 
 def LoopArgs():
@@ -291,7 +292,7 @@ import gradio as gr
 import time
 from types import SimpleNamespace
 
-i1_store_backup = f"<p style=\"text-align:center;font-weight:bold;margin-bottom:0em\">Deforum extension for auto1111 — version 2.2b | Git commit: {get_deforum_version()}</p>"
+i1_store_backup = f"<p style=\"text-align:center;font-weight:bold;margin-bottom:0em\">Deforum extension for auto1111 — version 2.3b | Git commit: {get_deforum_version()}</p>"
 i1_store = i1_store_backup
 
 mask_fill_choices=['fill', 'original', 'latent noise', 'latent nothing']
@@ -397,8 +398,8 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         gr.HTML("""Prerequisites and Important Info: 
                                    <ul style="list-style-type:circle; margin-left:2em; margin-bottom:0em">
                                        <li>This mode works ONLY with 2D/3D animation modes. Interpolation and Video Input modes aren't supported.</ li>
-                                       <li>Set Init tab's strength slider greater than 0. Recommended value (.65 - .80).</ li>
-                                       <li>Set 'seed_behavior' to 'schedule' under the Seed Scheduling section below.</li>
+                                       <li>Init tab's strength slider should be greater than 0. Recommended value (.65 - .80).</ li>
+                                       <li>'seed_behavior' will be forcibly set to 'schedule'.</li>
                                     </ul>
                                 """)
                         gr.HTML("""Looping recommendations: 
@@ -547,9 +548,10 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                     # COHERENCE INNER TAB
                     with gr.TabItem('Coherence', open=False) as coherence_accord:
                         with gr.Row(variant='compact'):
-                            # Future TODO: remove 'match frame 0' prefix (after we manage the deprecated-names settings import), then convert from Dropdown to Radio!
-                            color_coherence = gr.Dropdown(label="Color coherence", choices=['None', 'Match Frame 0 HSV', 'Match Frame 0 LAB', 'Match Frame 0 RGB', 'Video Input'], value=da.color_coherence, type="value", elem_id="color_coherence", interactive=True)
+                            color_coherence = gr.Dropdown(label="Color coherence", choices=['None', 'HSV', 'LAB', 'RGB', 'Video Input', 'Image'], value=da.color_coherence, type="value", elem_id="color_coherence", interactive=True)
                             color_force_grayscale = gr.Checkbox(label="Color force Grayscale", value=da.color_force_grayscale, interactive=True)
+                        with gr.Row(visible=False) as color_coherence_image_path_row:
+                            color_coherence_image_path = gr.Textbox(label="Color coherence image path", lines=1, value=da.color_coherence_image_path, interactive=True)
                         with gr.Row(visible=False) as color_coherence_video_every_N_frames_row:
                             color_coherence_video_every_N_frames = gr.Number(label="Color coherence video every N frames", value=1, interactive=True)
                         with gr.Row(variant='compact'):
@@ -612,9 +614,9 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         with gr.Column(min_width=150):
                             use_init = gr.Checkbox(label="Use init", value=d.use_init, interactive=True, visible=True)
                         with gr.Column(min_width=150):
-                            strength_0_no_init = gr.Checkbox(label="Strength 0 no init", value=True, interactive=True)
+                            strength_0_no_init = gr.Checkbox(label="Strength 0 no init", value=d.strength_0_no_init, interactive=True)
                         with gr.Column(min_width=170):
-                            strength = gr.Slider(label="Strength", minimum=0, maximum=1, step=0.01, value=0, interactive=True)
+                            strength = gr.Slider(label="Strength", minimum=0, maximum=1, step=0.01, value=d.strength, interactive=True)
                     with gr.Row(variant='compact'):
                         init_image = gr.Textbox(label="Init image", lines=1, interactive=True, value = d.init_image)
                 # VIDEO INIT INNER-TAB
@@ -886,7 +888,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             # Show a text about CLI outputs:
                             gr.HTML("* check your CLI for outputs")
                             # make the function call when the UPSCALE button is clicked
-                            upscale_btn.click(upload_vid_to_upscale,inputs=[vid_to_upscale_chosen_file, selected_tab, upscaling_resize, upscaling_resize_w, upscaling_resize_h, upscaling_crop, extras_upscaler_1, extras_upscaler_2, extras_upscaler_2_visibility, upscale_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset])
+                            #upscale_btn.click(upload_vid_to_upscale,inputs=[vid_to_upscale_chosen_file, selected_tab, upscaling_resize, upscaling_resize_w, upscaling_resize_h, upscaling_crop, extras_upscaler_1, extras_upscaler_2, extras_upscaler_2_visibility, upscale_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset])
                         # Vid2Depth TAB
                 with gr.TabItem('Vid2depth'):
                     vid_to_depth_chosen_file = gr.File(label="Video to get Depth from", interactive=True, file_count="single", file_types=["video"], elem_id="vid_to_depth_chosen_file")
@@ -980,6 +982,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
     seed_behavior.change(fn=change_seed_iter_visibility, inputs=seed_behavior, outputs=seed_iter_N_row) 
     seed_behavior.change(fn=change_seed_schedule_visibility, inputs=seed_behavior, outputs=seed_schedule_row)
     color_coherence.change(fn=change_color_coherence_video_every_N_frames_visibility, inputs=color_coherence, outputs=color_coherence_video_every_N_frames_row)
+    color_coherence.change(fn=change_color_coherence_image_path_visibility, inputs=color_coherence, outputs=color_coherence_image_path_row)
     noise_type.change(fn=change_perlin_visibility, inputs=noise_type, outputs=perlin_row)
     skip_video_creation_outputs = [fps_out_format_row, soundtrack_row, ffmpeg_quality_accordion, store_frames_in_ram, make_gif, r_upscale_row, delete_imgs]
     for output in skip_video_creation_outputs:
@@ -1024,7 +1027,7 @@ anim_args_names =   str(r'''animation_mode, max_frames, border,
                         enable_checkpoint_scheduling, checkpoint_schedule,
                         enable_clipskip_scheduling, clipskip_schedule, enable_noise_multiplier_scheduling, noise_multiplier_schedule,
                         kernel_schedule, sigma_schedule, amount_schedule, threshold_schedule,
-                        color_coherence, color_coherence_video_every_N_frames, color_force_grayscale,
+                        color_coherence, color_coherence_image_path, color_coherence_video_every_N_frames, color_force_grayscale,
                         diffusion_cadence, optical_flow_cadence,
                         noise_type, perlin_w, perlin_h, perlin_octaves, perlin_persistence,
                         use_depth_warping, midas_weight,
@@ -1220,14 +1223,6 @@ def upload_pics_to_interpolate(pic_list, engine, x_am, sl_enabled, sl_am, keep_i
     f_models_path = root_params['models_path']
     
     process_interp_pics_upload_logic(pic_list, engine, x_am, sl_enabled, sl_am, keep_imgs, f_location, f_crf, f_preset, fps, f_models_path, resolution, add_audio, audio_track)
-
-# Local gradio-to-upscalers function. *Needs* to stay here since we do Root() and use gradio elements directly, to be changed in the future
-def upload_vid_to_upscale(vid_to_upscale_chosen_file, selected_tab, upscaling_resize, upscaling_resize_w, upscaling_resize_h, upscaling_crop, extras_upscaler_1, extras_upscaler_2, extras_upscaler_2_visibility, upscale_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset):
-    # print msg and do nothing if vid not uploaded
-    if not vid_to_upscale_chosen_file:
-        return print("Please upload a video :)")
-    
-    process_upscale_vid_upload_logic(vid_to_upscale_chosen_file, selected_tab, upscaling_resize, upscaling_resize_w, upscaling_resize_h, upscaling_crop, extras_upscaler_1, extras_upscaler_2, extras_upscaler_2_visibility, vid_to_upscale_chosen_file.orig_name, upscale_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset)
 
 def upload_vid_to_depth(vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, depth_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset):
     # print msg and do nothing if vid not uploaded
