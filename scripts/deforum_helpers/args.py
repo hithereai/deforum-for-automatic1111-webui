@@ -11,7 +11,6 @@ from .video_audio_utilities import find_ffmpeg_binary, ffmpeg_stitch_video, dire
 from .gradio_funcs import *
 from .general_utils import get_os, get_deforum_version
 from .deforum_controlnet import setup_controlnet_ui, controlnet_component_names, controlnet_infotext
-# controlnet_component_names, setup_controlnet_ui
 import tempfile
         
 def Root():
@@ -1159,16 +1158,7 @@ def process_args(args_dict_main):
     p.seed_resize_from_h = args.seed_resize_from_h
     p.fill = args.fill
     p.ddim_eta = args.ddim_eta
-
-    current_arg_list = [args, anim_args, video_args, parseq_args]
-    args.outdir = os.path.join(p.outpath_samples, args.batch_name)
-    root.outpath_samples = args.outdir
-    args.outdir = os.path.join(os.getcwd(), args.outdir)
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
-    
     args.seed = get_fixed_seed(args.seed)
-        
     args.timestring = time.strftime('%Y%m%d%H%M%S')
     args.strength = max(0.0, min(1.0, args.strength))
 
@@ -1179,8 +1169,33 @@ def process_args(args_dict_main):
         anim_args.max_frames = 1
     elif anim_args.animation_mode == 'Video Input':
         args.use_init = True
+        
+    current_arg_list = [args, anim_args, video_args, parseq_args]
+    args.batch_name = substitute_placeholders(args.batch_name, current_arg_list)
+
+    args.outdir = os.path.join(p.outpath_samples, str(args.batch_name))
+    root.outpath_samples = args.outdir
+    args.outdir = os.path.join(os.getcwd(), args.outdir)
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
     
     return root, args, anim_args, video_args, parseq_args, loop_args, controlnet_args
+
+def custom_placeholder_format(value_dict, placeholder_match):
+    key = placeholder_match.group(1).lower()
+    return str(value_dict.get(key, key))
+
+def substitute_placeholders(template, arg_list):
+    import re
+    # Generate values dictionary with dictionary comprehension
+    values = {attr.lower(): getattr(arg_obj, attr)
+              for arg_obj in arg_list
+              for attr in dir(arg_obj) if not attr.startswith('__')}
+
+    # Convert placeholders to lowercase and perform custom formatting with error handling
+    formatted_string = re.sub(r"{(\w+)}", lambda m: custom_placeholder_format(values, m), template)
+
+    return formatted_string
 
 def print_args(args):
     print("ARGS: /n")
