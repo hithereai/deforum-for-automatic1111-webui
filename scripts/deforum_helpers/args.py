@@ -1169,14 +1169,14 @@ def process_args(args_dict_main):
         anim_args.max_frames = 1
     elif anim_args.animation_mode == 'Video Input':
         args.use_init = True
-        
     
     args.prompts = json.loads(args_dict_main['animation_prompts'])
-    # args.positive_prompts = 
-    
-    current_arg_list = [args, anim_args, video_args, parseq_args]
-    args.batch_name = substitute_placeholders(args.batch_name, current_arg_list)
+    args.positive_prompts = args_dict_main['animation_prompts_positive']
+    args.negative_prompts = args_dict_main['animation_prompts_negative']
 
+    current_arg_list = [args, anim_args, video_args, parseq_args]
+    
+    args.batch_name = substitute_placeholders(args.batch_name, current_arg_list)
     args.outdir = os.path.join(p.outpath_samples, str(args.batch_name))
     root.outpath_samples = args.outdir
     args.outdir = os.path.join(os.getcwd(), args.outdir)
@@ -1189,12 +1189,9 @@ def custom_placeholder_format(value_dict, placeholder_match):
     key = placeholder_match.group(1).lower()
     value = value_dict.get(key, key)
 
-    # Check if the value is a dictionary or a list, and return the first element accordingly
-    return str(value[list(value.keys())[0]][0]) if isinstance(value, dict) and value and isinstance(value[list(value.keys())[0]], list) and value[list(value.keys())[0]] else str(value)
+    if value == "": # return _ if placeholder is actually empty
+        value = "_"
 
-def custom_placeholder_format(value_dict, placeholder_match):
-    key = placeholder_match.group(1).lower()
-    value = value_dict.get(key, key)
     # Check if the value is a dictionary or a list, and return the first element accordingly
     return str(value[list(value.keys())[0]][0]) if isinstance(value, dict) and value and isinstance(value[list(value.keys())[0]], list) and value[list(value.keys())[0]] else str(value)
 
