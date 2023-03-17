@@ -11,9 +11,23 @@ from .video_audio_utilities import find_ffmpeg_binary, ffmpeg_stitch_video, dire
 from .gradio_funcs import *
 from .general_utils import get_os, get_deforum_version
 from .deforum_controlnet import setup_controlnet_ui, controlnet_component_names, controlnet_infotext
+from modules.ui import wrap_gradio_call
 # controlnet_component_names, setup_controlnet_ui
 import tempfile
 
+
+def deforum_get_setting_dictionary():
+    d = SimpleNamespace(**DeforumArgs()) #default args
+    da = SimpleNamespace(**DeforumAnimArgs()) #default anim args
+    dp = SimpleNamespace(**ParseqArgs()) #default parseq ars
+    dv = SimpleNamespace(**DeforumOutputArgs()) #default video args
+    dr = SimpleNamespace(**Root()) # ROOT args
+    dloopArgs = SimpleNamespace(**LoopArgs())
+    stuff = locals()
+    # stuff = {**stuff, **controlnet_dict}
+    # stuff.pop('controlnet_dict')
+    return stuff
+    
 def Root():
     device = sh.device
     models_path = ph.models_path + '/Deforum'
@@ -367,6 +381,17 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                     with gr.Row():
                         batch_sett_file_list = gr.Textbox(label="Batch setting files", lines=3, interactive=True, value="list of full paths to setting files")
                         load_batch_btn = gr.Button('load_batch_btn', elem_id='load_batch_btn')
+                    loc_components = {} 
+                    loc_components = deforum_get_setting_dictionary()
+                    loc_settings_component_list = [loc_components[name] for name in deforum_get_setting_dictionary()]
+                    # print(loc_settings_component_list)
+                    stuff = gr.HTML("")
+                    from .settings import load_settings_v3
+                    load_batch_btn.click(
+                        fn=wrap_gradio_call(load_settings_v3),
+                        inputs=[batch_sett_file_list] + loc_settings_component_list,
+                        outputs=loc_settings_component_list + [stuff],
+                        )
                 # RUN FROM SETTING FILE ACCORD
                 with gr.Accordion('Resume & Run from file', open=False):
                     with gr.Tab('Run from Settings file'):
