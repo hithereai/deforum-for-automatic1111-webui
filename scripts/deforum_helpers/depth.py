@@ -12,7 +12,7 @@ from midas.dpt_depth import DPTDepthModel
 from midas.transforms import Resize, NormalizeImage, PrepareForNet
 import torchvision.transforms.functional as TF
 from .general_utils import checksum
-from modules import lowvram, devices, sd_hijack
+from modules import lowvram, devices
 
 class MidasModel:
     _instance = None
@@ -29,6 +29,12 @@ class MidasModel:
         self.adabins_helper = None
         self.depth_min = 1000
         self.depth_max = -1000
+        
+        if not os.path.exists(os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')):
+            from basicsr.utils.download_util import load_file_from_url
+            load_file_from_url(r"https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", models_path)
+            if checksum(os.path.join(models_path,'dpt_large-midas-2f21e586.pt')) != "fcc4829e65d00eeed0a38e9001770676535d2e95c8a16965223aba094936e1316d569563552a852d471f310f83f597e8a238987a26a950d667815e08adaebc06":
+                raise Exception(r"Error while downloading dpt_large-midas-2f21e586.pt. Please download from here: https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt and place in: " + models_path)
 
         if self.keep_in_vram or not hasattr(self, 'midas_model'):
             self.midas_model = DPTDepthModel(
