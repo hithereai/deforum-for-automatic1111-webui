@@ -14,7 +14,7 @@ from .noise import add_noise
 from .animation import sample_from_cv2, sample_to_cv2, anim_frame_warp
 from .animation_key_frames import DeformAnimKeys, LooperAnimKeys
 from .video_audio_utilities import get_frame_name, get_next_frame
-from .depth import DepthModel
+from .depth import DepthModel, MidasModel
 from .colors import maintain_colors
 from .parseq_adapter import ParseqAnimKeys
 from .seed import next_seed
@@ -107,10 +107,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     predict_depths = (anim_args.animation_mode == '3D' and anim_args.use_depth_warping) or anim_args.save_depth_maps
     predict_depths = predict_depths or (anim_args.hybrid_composite and anim_args.hybrid_comp_mask_type in ['Depth','Video Depth'])
     if predict_depths:
-        depth_model = DepthModel('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
-        depth_model.load_midas(root.models_path, root.half_precision)
-        if anim_args.midas_weight < 1.0:
-            depth_model.load_adabins(root.models_path)
+        # depth_model = DepthModel('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
+        # depth_model.load_midas(root.models_path, root.half_precision)
+        depth_model = MidasModel(root.models_path)
+        # if anim_args.midas_weight < 1.0:
+            # depth_model.load_adabins(root.models_path)
         # depth-based hybrid composite mask requires saved depth maps
         if anim_args.hybrid_composite and anim_args.hybrid_comp_mask_type =='Depth':
             anim_args.save_depth_maps = True
