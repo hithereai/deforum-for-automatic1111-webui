@@ -111,9 +111,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         depth_model = MidasModel(root.models_path, root.half_precision, keep_in_vram=keep_in_vram)
         
         if anim_args.midas_weight < 1.0:
-            import torch # TODO CHANGE THIS?????
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            adabins_model = AdaBinsModel(root.models_path, device=device, keep_in_vram=keep_in_vram)
+            adabins_model = AdaBinsModel(root.models_path, keep_in_vram=keep_in_vram)
             
         # depth-based hybrid composite mask requires saved depth maps
         if anim_args.hybrid_composite and anim_args.hybrid_comp_mask_type =='Depth':
