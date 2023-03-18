@@ -14,7 +14,7 @@ from .noise import add_noise
 from .animation import sample_from_cv2, sample_to_cv2, anim_frame_warp
 from .animation_key_frames import DeformAnimKeys, LooperAnimKeys
 from .video_audio_utilities import get_frame_name, get_next_frame
-from .depth import DepthModel, MidasModel
+from .depth import DepthModel, MidasModel, AdaBinsModel
 from .colors import maintain_colors
 from .parseq_adapter import ParseqAnimKeys
 from .seed import next_seed
@@ -109,9 +109,13 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     if predict_depths:
         # depth_model = DepthModel('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
         # depth_model.load_midas(root.models_path, root.half_precision)
-        depth_model = MidasModel(root.models_path)
-        # if anim_args.midas_weight < 1.0:
+        depth_model = MidasModel(root.models_path, keep_in_vram=True)
+        if anim_args.midas_weight < 1.0:
+            import torch # TODO CHANGE THIS?
             # depth_model.load_adabins(root.models_path)
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            adabins_model = AdaBinsModel(root.models_path, device=device)
+            
         # depth-based hybrid composite mask requires saved depth maps
         if anim_args.hybrid_composite and anim_args.hybrid_comp_mask_type =='Depth':
             anim_args.save_depth_maps = True

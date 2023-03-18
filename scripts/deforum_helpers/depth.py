@@ -19,15 +19,17 @@ from .general_utils import checksum
 class MidasModel:
     _instance = None
 
-    def __new__(cls, models_path, half_precision=True):
-        if cls._instance is None:
-            cls._instance = super(MidasModel, cls).__new__(cls)
-            cls._instance._initialize(models_path, half_precision)
+    def __new__(cls, *args, **kwargs):
+        keep_in_vram = kwargs.get('keep_in_vram', True)
+        if cls._instance is None or not keep_in_vram:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialize(*args, **kwargs)
         return cls._instance
 
-    def _initialize(self, models_path, half_precision=True):
-        # Your existing code to load the model
-        # ...
+
+    # def _initialize(self, models_path, half_precision=True):
+    def _initialize(self, models_path, half_precision=True, keep_in_vram=True):
+        self.keep_in_vram = keep_in_vram
         self.adabins_helper = None
         self.midas_model = DPTDepthModel(
             path=f"{models_path}/dpt_large-midas-2f21e586.pt",
@@ -58,9 +60,6 @@ class MidasModel:
             self.midas_model = self.midas_model.half()
         self.midas_model.to(self.device)
 
-    # @staticmethod
-    # def get_instance():
-        # return MidasModel._instance
         
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
         w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
@@ -142,14 +141,33 @@ class MidasModel:
             depth_tensor = torch.ones((h, w), device=self.device)
         
         return depth_tensor
-    def load_adabins(self, models_path):
+    # def load_adabins(self, models_path):
+        # if not os.path.exists(os.path.join(models_path,'AdaBins_nyu.pt')):
+            # from basicsr.utils.download_util import load_file_from_url
+            # load_file_from_url(r"https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", models_path)
+            # if checksum(os.path.join(models_path,'AdaBins_nyu.pt')) != "643db9785c663aca72f66739427642726b03acc6c4c1d3755a4587aa2239962746410d63722d87b49fc73581dbc98ed8e3f7e996ff7b9c0d56d0fbc98e23e41a":
+                # raise Exception(r"Error while downloading AdaBins_nyu.pt. Please download from here: https://drive.google.com/file/d/1lvyZZbC9NLcS8a__YPcUP7rDiIpbRpoF and place in: " + models_path)
+        # self.adabins_helper = InferenceHelper(models_path=models_path, dataset='nyu', device=self.device)
+  
+
+
+
+class AdaBinsModel:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialize(*args, **kwargs)
+        return cls._instance
+
+    def _initialize(self, models_path, device):
         if not os.path.exists(os.path.join(models_path,'AdaBins_nyu.pt')):
-            from basicsr.utils.download_util import load_file_from_url
-            load_file_from_url(r"https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", models_path)
-            if checksum(os.path.join(models_path,'AdaBins_nyu.pt')) != "643db9785c663aca72f66739427642726b03acc6c4c1d3755a4587aa2239962746410d63722d87b49fc73581dbc98ed8e3f7e996ff7b9c0d56d0fbc98e23e41a":
-                raise Exception(r"Error while downloading AdaBins_nyu.pt. Please download from here: https://drive.google.com/file/d/1lvyZZbC9NLcS8a__YPcUP7rDiIpbRpoF and place in: " + models_path)
-        self.adabins_helper = InferenceHelper(models_path=models_path, dataset='nyu', device=self.device)
-            
+                from basicsr.utils.download_util import load_file_from_url
+                load_file_from_url(r"https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", models_path)
+                if checksum(os.path.join(models_path,'AdaBins_nyu.pt')) != "643db9785c663aca72f66739427642726b03acc6c4c1d3755a4587aa2239962746410d63722d87b49fc73581dbc98ed8e3f7e996ff7b9c0d56d0fbc98e23e41a":
+                    raise Exception(r"Error while downloading AdaBins_nyu.pt. Please download from here: https://drive.google.com/file/d/1lvyZZbC9NLcS8a__YPcUP7rDiIpbRpoF and place in: " + models_path)
+        self.adabins_helper = InferenceHelper(models_path=models_path, dataset='nyu', device=device)
 class DepthModel():
     def __init__(self, device):
         self.adabins_helper = None
