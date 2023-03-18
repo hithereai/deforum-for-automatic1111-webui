@@ -180,7 +180,7 @@ def load_depth_model(models_path, midas_weight_vid2depth):
     print('Loading Depth Model')
     depth_model = MidasModel(models_path, not cmd_opts.no_half, keep_in_vram=keep_in_vram)
     if midas_weight_vid2depth < 1.0:
-        adabins_model = AdaBinsModel(models_path, device=devices.device, keep_in_vram=keep_in_vram)
+        adabins_model = AdaBinsModel(models_path, keep_in_vram=keep_in_vram)
     return depth_model
 
 # Anime Remove Background by skytnt and onnx model
