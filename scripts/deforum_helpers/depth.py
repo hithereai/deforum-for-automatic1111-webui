@@ -28,9 +28,12 @@ class MidasModel:
 
 
     # def _initialize(self, models_path, half_precision=True):
-    def _initialize(self, models_path, half_precision=True, keep_in_vram=True):
+    def _initialize(self, models_path, half_precision=True, keep_in_vram=False):
         self.keep_in_vram = keep_in_vram
         self.adabins_helper = None
+        self.depth_min = 1000
+        self.depth_max = -1000
+        # self.device = device
         self.midas_model = DPTDepthModel(
             path=f"{models_path}/dpt_large-midas-2f21e586.pt",
             backbone="vitl16_384",
@@ -141,6 +144,29 @@ class MidasModel:
             depth_tensor = torch.ones((h, w), device=self.device)
         
         return depth_tensor
+        
+    def to_image(self, depth: torch.Tensor):
+        depth = depth.cpu().numpy()
+        if len(depth.shape) == 2:
+            depth = np.expand_dims(depth, axis=0)
+        self.depth_min = min(self.depth_min, depth.min())
+        self.depth_max = max(self.depth_max, depth.max())
+        print(f"  depth min:{depth.min()} max:{depth.max()}")
+        denom = max(1e-8, self.depth_max - self.depth_min)
+        temp = rearrange((depth - self.depth_min) / denom * 255, 'c h w -> h w c')
+        temp = repeat(temp, 'h w 1 -> h w c', c=3)
+        return Image.fromarray(temp.astype(np.uint8))
+    
+    def save(self, filename: str, depth: torch.Tensor):
+        self.to_image(depth).save(filename)    
+
+    def to(self, device):
+        self.device = device
+        self.midas_model.to(device)
+        if self.adabins_helper is not None:
+            self.adabins_helper.to(device)
+        gc.collect()
+        torch.cuda.empty_cache()
     # def load_adabins(self, models_path):
         # if not os.path.exists(os.path.join(models_path,'AdaBins_nyu.pt')):
             # from basicsr.utils.download_util import load_file_from_url
