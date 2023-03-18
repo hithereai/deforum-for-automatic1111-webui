@@ -24,11 +24,12 @@ class MidasModel:
             cls._instance._initialize(*args, **kwargs)
         return cls._instance
 
-    def _initialize(self, models_path, half_precision=True, keep_in_vram=False):
+    def _initialize(self, models_path, device, half_precision=True, keep_in_vram=False):
         self.keep_in_vram = keep_in_vram
         self.adabins_helper = None
         self.depth_min = 1000
         self.depth_max = -1000
+        self.device = device
 
         model_file = os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')
         if not os.path.exists(model_file):
@@ -53,7 +54,6 @@ class MidasModel:
                 PrepareForNet()
             ])
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.midas_model.eval().to(self.device, memory_format=torch.channels_last if self.device == torch.device("cuda") else None)
         if half_precision:
             self.midas_model = self.midas_model.half()

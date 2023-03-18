@@ -178,7 +178,9 @@ def stitch_video(img_batch_id, fps, img_folder_path, audio_path, ffmpeg_location
 def load_depth_model(models_path, midas_weight_vid2depth):
     keep_in_vram = False
     print('Loading Depth Model')
-    depth_model = MidasModel(models_path, not cmd_opts.no_half, keep_in_vram=keep_in_vram)
+    import torch # TODO CHANGE THESE?!
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    depth_model = MidasModel(models_path, device, not cmd_opts.no_half, keep_in_vram=keep_in_vram)
     if midas_weight_vid2depth < 1.0:
         adabins_model = AdaBinsModel(models_path, keep_in_vram=keep_in_vram)
     return depth_model
