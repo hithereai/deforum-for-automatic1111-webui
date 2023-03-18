@@ -8,7 +8,6 @@ import itertools
 import numexpr
 from PIL import Image, ImageOps
 from .rich import console
-
 from .generate import generate, isJson
 from .noise import add_noise
 from .animation import sample_from_cv2, sample_to_cv2, anim_frame_warp
