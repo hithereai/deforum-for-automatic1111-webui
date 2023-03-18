@@ -12,6 +12,7 @@ from midas.dpt_depth import DPTDepthModel
 from midas.transforms import Resize, NormalizeImage, PrepareForNet
 import torchvision.transforms.functional as TF
 from .general_utils import checksum
+from modules import lowvram, devices, sd_hijack
 
 
 
@@ -25,6 +26,11 @@ class MidasModel:
             cls._instance = super().__new__(cls)
             cls._instance._initialize(*args, **kwargs)
         return cls._instance
+    # def __new__(cls, *args, **kwargs):
+        # if cls._instance is None:
+            # cls._instance = super().__new__(cls)
+            # cls._instance._initialize(*args, **kwargs)
+        # return cls._instance
 
 
     # def _initialize(self, models_path, half_precision=True):
@@ -34,26 +40,28 @@ class MidasModel:
         self.depth_min = 1000
         self.depth_max = -1000
         # self.device = device
-        self.midas_model = DPTDepthModel(
-            path=f"{models_path}/dpt_large-midas-2f21e586.pt",
-            backbone="vitl16_384",
-            non_negative=True,
-        )
 
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        if self.keep_in_vram or not hasattr(self, 'midas_model'):
+            self.midas_model = DPTDepthModel(
+                path=f"{models_path}/dpt_large-midas-2f21e586.pt",
+                backbone="vitl16_384",
+                non_negative=True,
+            )
 
-        self.midas_transform = T.Compose([
-            Resize(
-                384, 384,
-                resize_target=None,
-                keep_aspect_ratio=True,
-                ensure_multiple_of=32,
-                resize_method="minimal",
-                image_interpolation_method=cv2.INTER_CUBIC,
-            ),
-            normalization,
-            PrepareForNet()
-        ])
+            normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+
+            self.midas_transform = T.Compose([
+                Resize(
+                    384, 384,
+                    resize_target=None,
+                    keep_aspect_ratio=True,
+                    ensure_multiple_of=32,
+                    resize_method="minimal",
+                    image_interpolation_method=cv2.INTER_CUBIC,
+                ),
+                normalization,
+                PrepareForNet()
+            ])
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.midas_model.eval()
@@ -62,6 +70,7 @@ class MidasModel:
         if half_precision:
             self.midas_model = self.midas_model.half()
         self.midas_model.to(self.device)
+
 
         
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
@@ -167,33 +176,85 @@ class MidasModel:
             self.adabins_helper.to(device)
         gc.collect()
         torch.cuda.empty_cache()
-    # def load_adabins(self, models_path):
-        # if not os.path.exists(os.path.join(models_path,'AdaBins_nyu.pt')):
-            # from basicsr.utils.download_util import load_file_from_url
-            # load_file_from_url(r"https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", models_path)
-            # if checksum(os.path.join(models_path,'AdaBins_nyu.pt')) != "643db9785c663aca72f66739427642726b03acc6c4c1d3755a4587aa2239962746410d63722d87b49fc73581dbc98ed8e3f7e996ff7b9c0d56d0fbc98e23e41a":
-                # raise Exception(r"Error while downloading AdaBins_nyu.pt. Please download from here: https://drive.google.com/file/d/1lvyZZbC9NLcS8a__YPcUP7rDiIpbRpoF and place in: " + models_path)
-        # self.adabins_helper = InferenceHelper(models_path=models_path, dataset='nyu', device=self.device)
-  
+        
+    def delete_model(self):
+        print("DEL!!! MIDAS")
+        if hasattr(self, 'midas_model'):
+            del self.midas_model
+        if hasattr(self, 'adabins_helper'):
+            del self.adabins_helper
+        torch.cuda.empty_cache()
+        devices.torch_gc()
+        
+    # def __enter__(self):
+        # return self
 
-
+    # def __exit__(self, exc_type, exc_val, exc_tb):
+        # if not self.keep_in_vram:
+            # self.midas_model.cpu()
+            # torch.cuda.empty_cache()
 
 class AdaBinsModel:
     _instance = None
-
+    
     def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
+        keep_in_vram = kwargs.get('keep_in_vram', True)
+        if cls._instance is None or not keep_in_vram:
             cls._instance = super().__new__(cls)
             cls._instance._initialize(*args, **kwargs)
         return cls._instance
+    # def __new__(cls, *args, **kwargs):
+        # if cls._instance is None:
+            # cls._instance = super().__new__(cls)
+            # cls._instance._initialize(*args, **kwargs)
+        # return cls._instance
 
-    def _initialize(self, models_path, device):
-        if not os.path.exists(os.path.join(models_path,'AdaBins_nyu.pt')):
+    def _initialize(self, models_path, device, keep_in_vram=False):
+        self.keep_in_vram = keep_in_vram
+
+        if self.keep_in_vram or not hasattr(self, 'adabins_helper'):
+            if not os.path.exists(os.path.join(models_path, 'AdaBins_nyu.pt')):
                 from basicsr.utils.download_util import load_file_from_url
-                load_file_from_url(r"https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", models_path)
-                if checksum(os.path.join(models_path,'AdaBins_nyu.pt')) != "643db9785c663aca72f66739427642726b03acc6c4c1d3755a4587aa2239962746410d63722d87b49fc73581dbc98ed8e3f7e996ff7b9c0d56d0fbc98e23e41a":
-                    raise Exception(r"Error while downloading AdaBins_nyu.pt. Please download from here: https://drive.google.com/file/d/1lvyZZbC9NLcS8a__YPcUP7rDiIpbRpoF and place in: " + models_path)
-        self.adabins_helper = InferenceHelper(models_path=models_path, dataset='nyu', device=device)
+                load_file_from_url(
+                    r"https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt",
+                    models_path)
+                if checksum(os.path.join(models_path, 'AdaBins_nyu.pt')) != "643db9785c663aca72f66739427642726b03acc6c4c1d3755a4587aa2239962746410d63722d87b49fc73581dbc98ed8e3f7e996ff7b9c0d56d0fbc98e23e41a":
+                    raise Exception(
+                        r"Error while downloading AdaBins_nyu.pt. Please download from here: https://drive.google.com/file/d/1lvyZZbC9NLcS8a__YPcUP7rDiIpbRpoF and place in: " + models_path)
+            self.adabins_helper = InferenceHelper(models_path=models_path, dataset='nyu', device=device)
+    def delete_model(self):
+        print("DEL!!! ADA")
+        if hasattr(self, 'midas_model'):
+            del self.midas_model
+        if hasattr(self, 'adabins_helper'):
+            del self.adabins_helper
+        torch.cuda.empty_cache()
+        devices.torch_gc()
+    # def __enter__(self):
+        # return self
+
+    # def __exit__(self, exc_type, exc_val, exc_tb):
+        # if not self.keep_in_vram:
+            # self.adabins_helper.model.cpu()
+            # torch.cuda.empty_cache()
+
+
+# class AdaBinsModel:
+    # _instance = None
+
+    # def __new__(cls, *args, **kwargs):
+        # if cls._instance is None:
+            # cls._instance = super().__new__(cls)
+            # cls._instance._initialize(*args, **kwargs)
+        # return cls._instance
+
+    # def _initialize(self, models_path, device):
+        # if not os.path.exists(os.path.join(models_path,'AdaBins_nyu.pt')):
+                # from basicsr.utils.download_util import load_file_from_url
+                # load_file_from_url(r"https://cloudflare-ipfs.com/ipfs/Qmd2mMnDLWePKmgfS8m6ntAg4nhV5VkUyAydYBp8cWWeB7/AdaBins_nyu.pt", models_path)
+                # if checksum(os.path.join(models_path,'AdaBins_nyu.pt')) != "643db9785c663aca72f66739427642726b03acc6c4c1d3755a4587aa2239962746410d63722d87b49fc73581dbc98ed8e3f7e996ff7b9c0d56d0fbc98e23e41a":
+                    # raise Exception(r"Error while downloading AdaBins_nyu.pt. Please download from here: https://drive.google.com/file/d/1lvyZZbC9NLcS8a__YPcUP7rDiIpbRpoF and place in: " + models_path)
+        # self.adabins_helper = InferenceHelper(models_path=models_path, dataset='nyu', device=device)
 class DepthModel():
     def __init__(self, device):
         self.adabins_helper = None

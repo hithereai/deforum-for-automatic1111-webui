@@ -107,14 +107,19 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     predict_depths = (anim_args.animation_mode == '3D' and anim_args.use_depth_warping) or anim_args.save_depth_maps
     predict_depths = predict_depths or (anim_args.hybrid_composite and anim_args.hybrid_comp_mask_type in ['Depth','Video Depth'])
     if predict_depths:
+        # TODO: DEL MODELS DOESNT WORK!
+        
         # depth_model = DepthModel('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
         # depth_model.load_midas(root.models_path, root.half_precision)
-        depth_model = MidasModel(root.models_path, keep_in_vram=True)
+        # depth_model = MidasModel(root.models_path, keep_in_vram=True)
+        depth_model = MidasModel(root.models_path, root.half_precision, keep_in_vram=True)
+        
         if anim_args.midas_weight < 1.0:
             import torch # TODO CHANGE THIS?
             # depth_model.load_adabins(root.models_path)
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            adabins_model = AdaBinsModel(root.models_path, device=device)
+            # adabins_model = AdaBinsModel(root.models_path, device=device, keep_in_vram=True)
+            adabins_model = AdaBinsModel(root.models_path, device=device, keep_in_vram=True)
             
         # depth-based hybrid composite mask requires saved depth maps
         if anim_args.hybrid_composite and anim_args.hybrid_comp_mask_type =='Depth':
@@ -549,3 +554,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         state.current_image = image
 
         args.seed = next_seed(args)
+        
+        # depth_model.__exit__(None, None, None)
+        # adabins_model.__exit__(None, None, None)
