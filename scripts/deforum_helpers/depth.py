@@ -14,7 +14,6 @@ import torchvision.transforms.functional as TF
 from .general_utils import checksum
 from modules import lowvram, devices
 
-
 class MidasModel:
     _instance = None
 
@@ -161,6 +160,7 @@ class AdaBinsModel:
                     raise Exception(
                         r"Error while downloading AdaBins_nyu.pt. Please download from here: https://drive.google.com/file/d/1lvyZZbC9NLcS8a__YPcUP7rDiIpbRpoF and place in: " + models_path)
             self.adabins_helper = InferenceHelper(models_path=models_path, dataset='nyu', device=self.device)
+            
     def delete_model(self):
         del self.adabins_helper
         torch.cuda.empty_cache()
