@@ -548,4 +548,4 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         
     if not keep_in_vram:
         depth_model.delete_model()
-        adabins_model.delete_model()
+        adabins_model.delete_model() # TODO: check if it works when midas higher than 1.0
