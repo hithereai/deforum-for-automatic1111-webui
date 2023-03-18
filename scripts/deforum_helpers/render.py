@@ -33,6 +33,7 @@ from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
 
 def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
+    keep_in_vram = True
     # handle hybrid video generation
     if anim_args.animation_mode in ['2D','3D']:
         if anim_args.hybrid_composite or anim_args.hybrid_motion in ['Affine', 'Perspective', 'Optical Flow']:
@@ -107,19 +108,12 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
     predict_depths = (anim_args.animation_mode == '3D' and anim_args.use_depth_warping) or anim_args.save_depth_maps
     predict_depths = predict_depths or (anim_args.hybrid_composite and anim_args.hybrid_comp_mask_type in ['Depth','Video Depth'])
     if predict_depths:
-        # TODO: DEL MODELS DOESNT WORK!
-        
-        # depth_model = DepthModel('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
-        # depth_model.load_midas(root.models_path, root.half_precision)
-        # depth_model = MidasModel(root.models_path, keep_in_vram=True)
-        depth_model = MidasModel(root.models_path, root.half_precision, keep_in_vram=True)
+        depth_model = MidasModel(root.models_path, root.half_precision, keep_in_vram=keep_in_vram)
         
         if anim_args.midas_weight < 1.0:
-            import torch # TODO CHANGE THIS?
-            # depth_model.load_adabins(root.models_path)
+            import torch # TODO CHANGE THIS?????
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            # adabins_model = AdaBinsModel(root.models_path, device=device, keep_in_vram=True)
-            adabins_model = AdaBinsModel(root.models_path, device=device, keep_in_vram=True)
+            adabins_model = AdaBinsModel(root.models_path, device=device, keep_in_vram=keep_in_vram)
             
         # depth-based hybrid composite mask requires saved depth maps
         if anim_args.hybrid_composite and anim_args.hybrid_comp_mask_type =='Depth':
@@ -142,7 +136,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             last_frame -= last_frame%turbo_steps
         path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
         img = cv2.imread(path)
-        #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # Changed the colors on resume
         prev_img = img
         if anim_args.color_coherence != 'None':
             color_match_sample = img
@@ -555,5 +548,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         args.seed = next_seed(args)
         
-        # depth_model.__exit__(None, None, None)
-        # adabins_model.__exit__(None, None, None)
+    if not keep_in_vram:
+        depth_model.delete_model()
+        adabins_model.delete_model()
