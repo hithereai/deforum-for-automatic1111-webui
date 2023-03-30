@@ -289,6 +289,8 @@ def DeforumOutputArgs():
     frame_interpolation_slow_mo_enabled = False
     frame_interpolation_slow_mo_amount = 2 #[2 to 10]
     frame_interpolation_keep_imgs = False
+    
+    save_anim_data_as_srt = False
     return locals()
     
 import gradio as gr
@@ -767,6 +769,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             save_depth_maps = gr.Checkbox(label="Save depth maps", value=da.save_depth_maps, interactive=True)
                             # the following param only shows for windows and linux users!
                             make_gif = gr.Checkbox(label="Make GIF", value=dv.make_gif, interactive=True)
+                            save_anim_data_as_srt = gr.Checkbox(label="Save info as .srt", value=dv.save_anim_data_as_srt, interactive=True)
                     with gr.Row(equal_height=True, variant='compact', visible=True) as r_upscale_row:
                         r_upscale_video = gr.Checkbox(label="Upscale", value=dv.r_upscale_video, interactive=True)
                         r_upscale_model = gr.Dropdown(label="Upscale model", choices=['realesr-animevideov3', 'realesrgan-x4plus', 'realesrgan-x4plus-anime'], interactive=True, value = dv.r_upscale_model, type="value")
@@ -1057,7 +1060,7 @@ video_args_names =  str(r'''skip_video_creation,
                             render_steps,
                             path_name_modifier, image_path, mp4_path, store_frames_in_ram,
                             frame_interpolation_engine, frame_interpolation_x_amount, frame_interpolation_slow_mo_enabled, frame_interpolation_slow_mo_amount,
-                            frame_interpolation_keep_imgs'''
+                            frame_interpolation_keep_imgs, save_anim_data_as_srt'''
                     ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
 parseq_args_names = str(r'''parseq_manifest, parseq_use_deltas'''
                     ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
