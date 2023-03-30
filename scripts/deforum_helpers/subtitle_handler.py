@@ -21,3 +21,13 @@ def write_frame_subtitle(filename, frame_number, frame_duration, text):
         f.write(f"{frame_number + 1}\n")
         f.write(f"{time_to_srt_format(frame_start_time)} --> {time_to_srt_format(frame_end_time)}\n")
         f.write(f"{text}\n\n")
+    
+def format_value(value):
+    try:
+        value = float(value)
+        if value.is_integer():
+            return '{:.0f}'.format(value)
+        else:
+            return '{:.2f}'.format(value)
+    except (ValueError, TypeError):
+        return str(value)

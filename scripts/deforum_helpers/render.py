@@ -29,7 +29,7 @@ from .save_images import save_image
 from .composable_masks import compose_mask_with_check
 from .settings import save_settings_from_animation_run
 from .deforum_controlnet import unpack_controlnet_vids, is_controlnet_enabled
-from .subtitle_handler import init_srt_file, write_frame_subtitle
+from .subtitle_handler import init_srt_file, write_frame_subtitle, format_value
 # Webui
 from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
@@ -255,8 +255,15 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             depth_model.to(root.device)
         
         if turbo_steps == 1:
-            write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f" F#: {frame_idx}; Seed: {args.seed}; StrSch: {keys.strength_schedule_series[frame_idx]}; CFG: {keys.cfg_scale_schedule_series[frame_idx]}; Steps: {keys.steps_schedule_series[frame_idx]}")
-
+            frame_info = [
+                ('F#', frame_idx),
+                ('Seed', args.seed),
+                ('StrSch', keys.strength_schedule_series[frame_idx]),
+                ('CFG', keys.cfg_scale_schedule_series[frame_idx]),
+                ('Steps', keys.steps_schedule_series[frame_idx])
+            ]
+            frame_info_str = '; '.join([f'{label}: {format_value(value)}' for label, value in frame_info])
+            write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, frame_info_str)
             
         # emit in-between frames
         if turbo_steps > 1:
@@ -274,8 +281,17 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                         if cadence_flow is None and turbo_prev_image is not None and turbo_next_image is not None:
                             cadence_flow = get_flow_from_images(turbo_prev_image, turbo_next_image, anim_args.optical_flow_cadence) / 2
                             turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)
-
-                write_frame_subtitle(srt_filename, tween_frame_idx, srt_frame_duration, f" F#: {tween_frame_idx}; Seed: {args.seed}; StrSch: {keys.strength_schedule_series[tween_frame_idx]}; CFG: {keys.cfg_scale_schedule_series[tween_frame_idx]}; Steps: {keys.steps_schedule_series[tween_frame_idx]}")
+                            
+                frame_info = [
+                    ('F#', tween_frame_idx),
+                    ('Seed', args.seed),
+                    ('StrSch', keys.strength_schedule_series[tween_frame_idx]),
+                    ('CFG', keys.cfg_scale_schedule_series[tween_frame_idx]),
+                    ('Steps', keys.steps_schedule_series[tween_frame_idx])
+                ]   
+                frame_info_str = '; '.join([f'{label}: {format_value(value)}' for label, value in frame_info])
+                write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, frame_info_str)
+                # write_frame_subtitle(srt_filename, tween_frame_idx, srt_frame_duration, f" F#: {tween_frame_idx}; Seed: {args.seed}; StrSch: {keys.strength_schedule_series[tween_frame_idx]}; CFG: {keys.cfg_scale_schedule_series[tween_frame_idx]}; Steps: {keys.steps_schedule_series[tween_frame_idx]}")
 
                 print(f"Creating in-between {'' if cadence_flow is None else anim_args.optical_flow_cadence + ' optical flow '}cadence frame: {tween_frame_idx}; tween:{tween:0.2f};")
 
