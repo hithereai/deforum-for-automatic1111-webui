@@ -255,7 +255,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             depth_model.to(root.device)
         
         if turbo_steps == 1:
-            write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, 'Frame: ' + str(frame_idx) + '; Seed: ' + str(args.seed) + '; StrSch: ' + str(keys.strength_schedule_series[frame_idx]))
+            write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f" F#: {frame_idx}; Seed: {args.seed}; StrSch: {keys.strength_schedule_series[frame_idx]}; CFG: {keys.cfg_scale_schedule_series[frame_idx]}; Steps: {keys.steps_schedule_series[frame_idx]}")
+
             
         # emit in-between frames
         if turbo_steps > 1:
@@ -274,11 +275,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                             cadence_flow = get_flow_from_images(turbo_prev_image, turbo_next_image, anim_args.optical_flow_cadence) / 2
                             turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)
 
-                
-                 # frame #, seed, strength, cfg, steps
-                write_frame_subtitle(srt_filename, tween_frame_idx, srt_frame_duration, 'Frame: ' + str(tween_frame_idx) + '; Seed: ' + str(args.seed) + '; StrSch: ' + str(keys.strength_schedule_series[tween_frame_idx]) )
-                
-                
+                write_frame_subtitle(srt_filename, tween_frame_idx, srt_frame_duration, f" F#: {tween_frame_idx}; Seed: {args.seed}; StrSch: {keys.strength_schedule_series[tween_frame_idx]}; CFG: {keys.cfg_scale_schedule_series[tween_frame_idx]}; Steps: {keys.steps_schedule_series[tween_frame_idx]}")
+
                 print(f"Creating in-between {'' if cadence_flow is None else anim_args.optical_flow_cadence + ' optical flow '}cadence frame: {tween_frame_idx}; tween:{tween:0.2f};")
 
                 if depth_model is not None:
