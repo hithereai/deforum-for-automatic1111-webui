@@ -29,12 +29,17 @@ from .save_images import save_image
 from .composable_masks import compose_mask_with_check
 from .settings import save_settings_from_animation_run
 from .deforum_controlnet import unpack_controlnet_vids, is_controlnet_enabled
+from .subtitle_handler import init_srt_file, write_frame_subtitle
 # Webui
 from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
 
 def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
-    # handle hybrid video generation
+
+    # TODO: add an IF from args's new param
+    srt_filename = os.path.join(args.outdir, f"{args.timestring}.srt")
+    srt_frame_duration = init_srt_file(srt_filename, video_args.fps)
+    
     if anim_args.animation_mode in ['2D','3D']:
         if anim_args.hybrid_composite or anim_args.hybrid_motion in ['Affine', 'Perspective', 'Optical Flow']:
             args, anim_args, inputfiles = hybrid_generation(args, anim_args, root)
@@ -195,6 +200,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     while frame_idx < (anim_args.max_frames if not anim_args.use_mask_video else anim_args.max_frames - 1):
         #Webui
+        
         state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
         state.job_no = frame_idx + 1
         if state.interrupted:
@@ -248,11 +254,15 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             devices.torch_gc()
             depth_model.to(root.device)
         
+        if turbo_steps == 1:
+            write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, 'Frame: ' + str(frame_idx) + '; Seed: ' + str(args.seed) + '; StrSch: ' + str(keys.strength_schedule_series[frame_idx]))
+            
         # emit in-between frames
         if turbo_steps > 1:
             tween_frame_start_idx = max(0, frame_idx-turbo_steps)
             cadence_flow = None
             for tween_frame_idx in range(tween_frame_start_idx, frame_idx):
+ 
                 tween = float(tween_frame_idx - tween_frame_start_idx + 1) / float(frame_idx - tween_frame_start_idx)
                 advance_prev = turbo_prev_image is not None and tween_frame_idx > turbo_prev_frame_idx
                 advance_next = tween_frame_idx > turbo_next_frame_idx
@@ -264,6 +274,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                             cadence_flow = get_flow_from_images(turbo_prev_image, turbo_next_image, anim_args.optical_flow_cadence) / 2
                             turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)
 
+                
+                 # frame #, seed, strength, cfg, steps
+                write_frame_subtitle(srt_filename, tween_frame_idx, srt_frame_duration, 'Frame: ' + str(tween_frame_idx) + '; Seed: ' + str(args.seed) + '; StrSch: ' + str(keys.strength_schedule_series[tween_frame_idx]) )
+                
+                
                 print(f"Creating in-between {'' if cadence_flow is None else anim_args.optical_flow_cadence + ' optical flow '}cadence frame: {tween_frame_idx}; tween:{tween:0.2f};")
 
                 if depth_model is not None:
