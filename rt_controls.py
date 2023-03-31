@@ -9,10 +9,6 @@ frame_lockfile_path = os.path.join(temp_folder_path,"currentFrame.txt.locked")
 deforumSettingsPath = os.path.join(temp_folder_path,"prompt.txt")
 deforumSettingsLockFilePath = os.path.join(temp_folder_path,"prompt.txt.locked")
 
-# deforumSettingsPath=os.path.join(temp_folder_path,"prompt.txt"
-# deforumSettingsLockFilePath = "C:\\temp\\prompt.txt.locked"
-# frame_path = "C:\\temp\\currentFrame.txt"
-# frame_lockfile_path = "C:\\temp\\currentFrame.txt.locked"
 USE_BUFFERED_DC = True
 
 Prompt_Positive = ""

@@ -353,6 +353,8 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
             
     with gr.Blocks():
         with gr.Tabs():
+            def asdf():
+                pass
             # RUN TAB
             with gr.TabItem('Run'):
                 from modules.sd_samplers import samplers_for_img2img
@@ -361,6 +363,9 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                     sampler = gr.Dropdown(label="Sampler", choices=[x.name for x in samplers_for_img2img], value=samplers_for_img2img[0].name, type="value", elem_id="sampler", interactive=True)
                     steps = gr.Slider(label="Steps", minimum=0, maximum=200, step=1, value=d.steps, interactive=True)
                 with gr.Row(variant='compact'):
+                    launch_rt_controls = gr.Button(value="LAUNCH RT")
+                    # launch_rt_controls.click(asdf)
+                    # ncnn_upscale_btn.click(ncnn_upload_vid_to_upscale,inputs=[vid_to_upscale_chosen_file, ncnn_upscale_in_vid_fps_ui_window, ncnn_upscale_in_vid_res, ncnn_upscale_out_vid_res, ncnn_upscale_model, ncnn_upscale_factor, ncnn_upscale_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset])
                     W = gr.Slider(label="Width", minimum=64, maximum=2048, step=64, value=d.W, interactive=True)
                     H = gr.Slider(label="Height", minimum=64, maximum=2048, step=64, value=d.H, interactive=True) 
                 with gr.Row(variant='compact'):
