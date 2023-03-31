@@ -801,7 +801,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             ffmpeg_location = gr.Textbox(label="Location", lines=1, interactive=True, value = dv.ffmpeg_location)
                 # FRAME INTERPOLATION TAB
                 with gr.Tab('Frame Interpolation') as frame_interp_tab:
-                    with gr.Accordion('Important notes and Help', open=False, elem_id="f_interp_accord"):
+                    with gr.Accordion('Important notes and Help', open=False, elem_id="f_interp_accord", visible=False):
                         gr.HTML("""
                         Use <a href="https://github.com/megvii-research/ECCV2022-RIFE">RIFE</a> / <a href="https://film-net.github.io/">FILM</a> Frame Interpolation to smooth out, slow-mo (or both) any video.</p>
                          <p style="margin-top:1em">

@@ -4,8 +4,6 @@
 	justify-content: center !important;
 }
 
-
-/* TODO: make it info mode and hide info accordions etc if enabled ?*/
 #hybrid_msg_html {
 	color: Tomato !important;
 	margin-top: 5px !important;
@@ -60,9 +58,6 @@
 	padding: 2.25px;
 }
 
-#f_interp_accord {
-	display: none;
-}
 
 /* OLD rules THAT MIGHT NEED TO BE REVIVED AT SOME POINT: */
 
