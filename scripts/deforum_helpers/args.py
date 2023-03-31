@@ -549,7 +549,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             with gr.Row(variant='compact'):
                                 perspective_flip_gamma = gr.Textbox(label="Perspective flip gamma", lines=1, value = da.perspective_flip_gamma, interactive=True)
                             with gr.Row(variant='compact'):
-                                perspective_flip_fv = gr.Textbox(label="Perspective flip fv", lines=1, value = da.perspective_flip_fv, interactive=True)
+                                perspective_flip_fv = gr.Textbox(label="Perspective flip fv", lines=1, value = da.perspective_flip_fv, interactive=True, info="the 2D vanishing point of perspective (rec. range 30-160)")
                     # NOISE INNER TAB
                     with gr.TabItem('Noise'):
                         with gr.Column() as noise_tab_column:
@@ -779,13 +779,13 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         output_format = gr.Dropdown(visible=False, label="Output format", choices=['FFMPEG mp4'], value='FFMPEG mp4', type="value", elem_id="output_format", interactive=True)
                     with gr.Column(variant='compact'):
                         with gr.Row(variant='compact') as soundtrack_row:
-                            add_soundtrack = gr.Radio(['None', 'File', 'Init Video'], label="Add soundtrack", value=dv.add_soundtrack)
+                            add_soundtrack = gr.Radio(['None', 'File', 'Init Video'], label="Add soundtrack", value=dv.add_soundtrack, info="add audio to video from file/url or init video")
                             soundtrack_path = gr.Textbox(label="Soundtrack path", lines=1, interactive=True, value = dv.soundtrack_path)
                         with gr.Row(variant='compact'):
-                            skip_video_creation = gr.Checkbox(label="Skip video creation", value=dv.skip_video_creation, interactive=True)
-                            delete_imgs = gr.Checkbox(label="Delete Imgs", value=dv.delete_imgs, interactive=True)
-                            store_frames_in_ram = gr.Checkbox(label="Store frames in ram", value=dv.store_frames_in_ram, interactive=True)
-                            save_depth_maps = gr.Checkbox(label="Save depth maps", value=da.save_depth_maps, interactive=True)
+                            skip_video_creation = gr.Checkbox(label="Skip video creation", value=dv.skip_video_creation, interactive=True, info="If enabled, only images will be saved")
+                            delete_imgs = gr.Checkbox(label="Delete Imgs", value=dv.delete_imgs, interactive=True, info="auto-delete imgs when video is ready")
+                            store_frames_in_ram = gr.Checkbox(label="Store frames in ram", value=dv.store_frames_in_ram, interactive=True, visible=False)
+                            save_depth_maps = gr.Checkbox(label="Save depth maps", value=da.save_depth_maps, interactive=True, info="save animation's depth maps as extra files")
                             # the following param only shows for windows and linux users!
                             make_gif = gr.Checkbox(label="Make GIF", value=dv.make_gif, interactive=True)
                     with gr.Row(equal_height=True, variant='compact', visible=True) as r_upscale_row:
