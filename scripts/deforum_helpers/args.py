@@ -452,19 +452,19 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                 with gr.Tabs(elem_id='extra_schedules'):
                     with gr.TabItem('Strength'):
                         with gr.Row(variant='compact'):
-                            strength_schedule = gr.Textbox(label="Strength schedule", lines=1, value = da.strength_schedule, interactive=True)
+                            strength_schedule = gr.Textbox(label="Strength schedule", lines=1, value = da.strength_schedule, interactive=True, info="amount of presence of previous frame to influence next frame, also controls steps in the following formula [steps - (strength_schedule * steps)]")
                     with gr.TabItem('CFG'):
                         with gr.Row(variant='compact'):
-                            cfg_scale_schedule = gr.Textbox(label="CFG scale schedule", lines=1, value = da.cfg_scale_schedule, interactive=True)
+                            cfg_scale_schedule = gr.Textbox(label="CFG scale schedule", lines=1, value = da.cfg_scale_schedule, interactive=True, info="how closely the image should conform to the prompt. Lower values produce more creative results. (recommended range 5-15)")
                         with gr.Row(variant='compact'):
                             enable_clipskip_scheduling = gr.Checkbox(label="Enable CLIP skip scheduling", value=da.enable_clipskip_scheduling, interactive=True)
                         with gr.Row(variant='compact'):
                             clipskip_schedule = gr.Textbox(label="CLIP skip schedule", lines=1, value = da.clipskip_schedule, interactive=True)
                     with gr.TabItem('Seed') as a3:
                         with gr.Row(variant='compact'):
-                            seed_behavior = gr.Radio(['iter', 'fixed', 'random', 'ladder', 'alternate', 'schedule'], label="Seed behavior", value=d.seed_behavior, elem_id="seed_behavior")
+                            seed_behavior = gr.Radio(['iter', 'fixed', 'random', 'ladder', 'alternate', 'schedule'], label="Seed behavior", value=d.seed_behavior, elem_id="seed_behavior", info="controls the seed behavior that is used for animation. hover on the options to see more info")
                         with gr.Row(variant='compact') as seed_iter_N_row:
-                            seed_iter_N = gr.Number(label="Seed iter N", value=d.seed_iter_N, interactive=True, precision=0)
+                            seed_iter_N = gr.Number(label="Seed iter N", value=d.seed_iter_N, interactive=True, precision=0, info="for how many frames the same seed should stick before iterating to the next one")
                         with gr.Row(visible=False) as seed_schedule_row:
                             seed_schedule = gr.Textbox(label="Seed schedule", lines=1, value = da.seed_schedule, interactive=True)
                     with gr.TabItem('SubSeed', open=False) as subseed_sch_tab:
