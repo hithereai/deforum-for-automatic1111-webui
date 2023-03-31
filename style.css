@@ -4,11 +4,6 @@
 	justify-content: center !important;
 }
 
-#extra_schedules::before {
-  content: "Schedules:";
-  font-size: 10px !important;
-}
-
 #hybrid_msg_html {
 	color: Tomato !important;
 	margin-top: 5px !important;
@@ -47,7 +42,20 @@
 	gap:4px !important;
 }
 
+#tab_deforum_interface #main_top_info_accord {
+	padding: 1px; 
+}
+
+#tab_deforum_interface .gradio-column.svelte-vt1mxs.panel{
+	gap: 1px !important;
+}
+
 /* OLD rules THAT MIGHT NEED TO BE REVIVED AT SOME POINT: */
+
+/* #extra_schedules::before { */
+  /* content: "Schedules:"; */
+  /* font-size: 10px !important; */
+/* } */
 /* #tab_deforum_interface .scroll-hide.svelte-4xt1ch { */
 	/* min-height: 36px; */
 	/* height: 36px !important; */

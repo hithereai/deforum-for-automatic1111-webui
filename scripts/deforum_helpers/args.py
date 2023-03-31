@@ -333,6 +333,8 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
             <li>If you want to use Width/Height which are not multiples of 64, please change noise_type to 'Uniform', in Keyframes --> Noise.</li>
             </ul>
             <italic>If you liked this extension, please <a style="color:SteelBlue" href="https://github.com/deforum-art/deforum-for-automatic1111-webui">give it a star on GitHub</a>!</italic> 😊""")
+    with gr.Row(variant='compact'):
+        show_info_on_ui = gr.Checkbox(label="Show info below params", value=d.show_info_on_ui, interactive=True)
     if not is_extension:
         def show_vid():
             return {
@@ -495,8 +497,8 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                 with gr.Tabs(elem_id='motion_noise_etc'):
                     with gr.TabItem('Motion') as motion_tab:
                         with gr.Column(visible=True) as only_2d_motion_column:
-                            with gr.Row(variant='compact'):
-                                show_info_on_ui = gr.Checkbox(label="Show info below params", value=d.show_info_on_ui, interactive=True)
+                            # with gr.Row(variant='compact'):
+                                # show_info_on_ui = gr.Checkbox(label="Show info below params", value=d.show_info_on_ui, interactive=True)
                             with gr.Row(variant='compact'):
                                 zoom = gr.Textbox(label="Zoom", lines=1, value = da.zoom, interactive=True, info="scale the canvas size, multiplicatively. [static = 1.0]")
                             # show_info_on_ui.change(fn=change_css, inputs=show_info_on_ui, outputs = gr.outputs.HTML())
