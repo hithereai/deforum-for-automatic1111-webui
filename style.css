@@ -60,6 +60,10 @@
 	padding: 2.25px;
 }
 
+#f_interp_accord {
+	display: none;
+}
+
 /* OLD rules THAT MIGHT NEED TO BE REVIVED AT SOME POINT: */
 
 /* #extra_schedules::before { */

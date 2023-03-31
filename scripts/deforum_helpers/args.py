@@ -334,7 +334,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
             </ul>
             <italic>If you liked this extension, please <a style="color:SteelBlue" href="https://github.com/deforum-art/deforum-for-automatic1111-webui">give it a star on GitHub</a>!</italic> 😊""")
     with gr.Row(variant='compact'):
-        show_info_on_ui = gr.Checkbox(label="Show info below params", value=d.show_info_on_ui, interactive=True)
+        show_info_on_ui = gr.Checkbox(label="Show more info", value=d.show_info_on_ui, interactive=True)
     if not is_extension:
         def show_vid():
             return {
@@ -356,7 +356,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
         
         html_template = f'''
         <style>
-            #tab_deforum_interface .svelte-e8n7p6 {{
+            #tab_deforum_interface .svelte-e8n7p6, #f_interp_accord {{
                 display: {display} !important;
             }}
         </style>
@@ -801,7 +801,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             ffmpeg_location = gr.Textbox(label="Location", lines=1, interactive=True, value = dv.ffmpeg_location)
                 # FRAME INTERPOLATION TAB
                 with gr.Tab('Frame Interpolation') as frame_interp_tab:
-                    with gr.Accordion('Important notes and Help', open=False):
+                    with gr.Accordion('Important notes and Help', open=False, elem_id="f_interp_accord"):
                         gr.HTML("""
                         Use <a href="https://github.com/megvii-research/ECCV2022-RIFE">RIFE</a> / <a href="https://film-net.github.io/">FILM</a> Frame Interpolation to smooth out, slow-mo (or both) any video.</p>
                          <p style="margin-top:1em">
