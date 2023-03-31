@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import os
 from functools import reduce
 import math
 import py3d_tools as p3d
@@ -10,6 +11,24 @@ from .prompt import check_is_number
 # Webui
 from modules.shared import state
 
+#FulHack
+prompt_path = "C:\\temp\\prompt.txt"
+deforumSettingsLockFilePath = "C:\\temp\\prompt.txt.locked"
+def lock():
+    try:
+        with open(deforumSettingsLockFilePath, 'x') as lockfile:
+            # write the PID of the current process so you can debug
+            # later if a lockfile can be deleted after a program crash
+            lockfile.write(str(os.getpid()))
+            lockfile.close()
+            return True
+    except IOError:
+         # file already exists
+        #print("ALREADY LOCKED")
+        return False
+def unlock():
+    os.remove(deforumSettingsLockFilePath)
+#END OF FULHACK
 def sample_from_cv2(sample: np.ndarray) -> torch.Tensor:
     sample = ((sample.astype(float) / 255.0) * 2) - 1
     sample = sample[None].transpose(0, 3, 1, 2).astype(np.float16)
@@ -196,16 +215,60 @@ def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
 
 def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
     TRANSLATION_SCALE = 1.0/200.0 # matches Disco
-    translate_xyz = [
-        -keys.translation_x_series[frame_idx] * TRANSLATION_SCALE, 
-        keys.translation_y_series[frame_idx] * TRANSLATION_SCALE, 
-        -keys.translation_z_series[frame_idx] * TRANSLATION_SCALE
-    ]
-    rotate_xyz = [
-        math.radians(keys.rotation_3d_x_series[frame_idx]), 
-        math.radians(keys.rotation_3d_y_series[frame_idx]), 
-        math.radians(keys.rotation_3d_z_series[frame_idx])
-    ]
+    #FulHack
+    if os.path.isfile(prompt_path):
+        while not lock():
+            print("Waiting for lock file")
+        promptfileRead = open(prompt_path, 'r')
+        if promptfileRead:
+            prompt = promptfileRead.readline()
+            prompt = prompt + "--neg "+ promptfileRead.readline()
+            strength = float(promptfileRead.readline())
+            fulhack_translation_3d_x = float(promptfileRead.readline())
+            fulhack_translation_3d_y = float(promptfileRead.readline())
+            fulhack_translation_3d_z = float(promptfileRead.readline())
+            translate_xyz = [
+                -fulhack_translation_3d_x * TRANSLATION_SCALE, 
+                fulhack_translation_3d_y * TRANSLATION_SCALE, 
+                -fulhack_translation_3d_z * TRANSLATION_SCALE
+            ]
+            promptfileRead.close()
+        unlock()
+    else:
+        translate_xyz = [
+            -keys.translation_x_series[frame_idx] * TRANSLATION_SCALE, 
+            keys.translation_y_series[frame_idx] * TRANSLATION_SCALE, 
+            -keys.translation_z_series[frame_idx] * TRANSLATION_SCALE
+        ]
+
+    #FulHack
+    if os.path.isfile(prompt_path):
+        while not lock():
+            print("Waiting for lock file")
+        promptfileRead = open(prompt_path, 'r')
+        if promptfileRead:
+            prompt = promptfileRead.readline()
+            prompt = prompt + "--neg "+ promptfileRead.readline()
+            strength = float(promptfileRead.readline())
+            fulhack_translation_3d_x = float(promptfileRead.readline())
+            fulhack_translation_3d_y = float(promptfileRead.readline())
+            fulhack_translation_3d_z = float(promptfileRead.readline())
+            fulhack_rotation_3d_x = float(promptfileRead.readline())
+            fulhack_rotation_3d_y = float(promptfileRead.readline())
+            fulhack_rotation_3d_z = float(promptfileRead.readline())
+            rotate_xyz = [
+                math.radians(fulhack_rotation_3d_x), 
+                math.radians(fulhack_rotation_3d_y), 
+                math.radians(fulhack_rotation_3d_z)
+            ]
+            promptfileRead.close()
+        unlock()
+    else:
+        rotate_xyz = [
+            math.radians(keys.rotation_3d_x_series[frame_idx]), 
+            math.radians(keys.rotation_3d_y_series[frame_idx]), 
+            math.radians(keys.rotation_3d_z_series[frame_idx])
+        ]
     if anim_args.enable_perspective_flip:
         prev_img_cv2 = flip_3d_perspective(anim_args, prev_img_cv2, keys, frame_idx)
     rot_mat = p3d.euler_angles_to_matrix(torch.tensor(rotate_xyz, device=device), "XYZ").unsqueeze(0)
@@ -220,7 +283,26 @@ def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, a
     aspect_ratio = keys.aspect_ratio_series[frame_idx]
     near = keys.near_series[frame_idx]
     far = keys.far_series[frame_idx]
-    fov_deg = keys.fov_series[frame_idx]
+    if os.path.isfile(prompt_path):
+        while not lock():
+            print("Waiting for lock file")
+        promptfileRead = open(prompt_path, 'r')
+        if promptfileRead:
+            prompt = promptfileRead.readline()
+            prompt = prompt + "--neg "+ promptfileRead.readline()
+            strength = float(promptfileRead.readline())
+            fulhack_translation_3d_x = float(promptfileRead.readline())
+            fulhack_translation_3d_y = float(promptfileRead.readline())
+            fulhack_translation_3d_z = float(promptfileRead.readline())
+            fulhack_rotation_3d_x = float(promptfileRead.readline())
+            fulhack_rotation_3d_y = float(promptfileRead.readline())
+            fulhack_rotation_3d_z = float(promptfileRead.readline())
+            scale = float(promptfileRead.readline())
+            fov_deg = float(promptfileRead.readline())
+            promptfileRead.close()
+        unlock()
+    else:
+        fov_deg = keys.fov_series[frame_idx]
     persp_cam_old = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, device=device)
     persp_cam_new = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, R=rot_mat, T=torch.tensor([translate]), device=device)
 
