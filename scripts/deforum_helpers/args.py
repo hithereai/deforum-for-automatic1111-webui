@@ -778,7 +778,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         output_format = gr.Dropdown(visible=False, label="Output format", choices=['FFMPEG mp4'], value='FFMPEG mp4', type="value", elem_id="output_format", interactive=True)
                     with gr.Column(variant='compact'):
                         with gr.Row(variant='compact') as soundtrack_row:
-                            add_soundtrack = gr.Radio(['None', 'File', 'Init Video'], label="Add soundtrack", value=dv.add_soundtrack, info="add audio to video from file/url or init video")
+                            add_soundtrack = gr.Radio(['None', 'File', 'Init Video'], label="Add soundtrack", value=dv.add_soundtrack, info="add audio to video from file/url or init video", elem_id="add_soundtrack")
                             soundtrack_path = gr.Textbox(label="Soundtrack path", lines=1, interactive=True, value = dv.soundtrack_path, info="abs. path or url to audio file")
                             # TODO: auto-hide if video input is selected?!
                         with gr.Row(variant='compact'):

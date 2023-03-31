@@ -4,6 +4,8 @@
 	justify-content: center !important;
 }
 
+
+/* TODO: make it info mode and hide info accordions etc if enabled ?*/
 #hybrid_msg_html {
 	color: Tomato !important;
 	margin-top: 5px !important;
@@ -52,6 +54,10 @@
 
 #tab_deforum_interface .svelte-e8n7p6 { /* hide at default gradio's info section from params at ui*/
 	display: none;
+}
+
+#add_soundtrack .svelte-1p9xokt {
+	padding: 2.25px;
 }
 
 /* OLD rules THAT MIGHT NEED TO BE REVIVED AT SOME POINT: */
