@@ -160,7 +160,7 @@ def DeforumArgs():
     H = 512 #
     W, H = map(lambda x: x - x % 64, (W, H))  # resize to integer multiple of 64
     
-    show_info_on_ui = True
+    show_info_on_ui = False
 
     #**Webui stuff**
     tiling = False
@@ -497,11 +497,8 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                 with gr.Tabs(elem_id='motion_noise_etc'):
                     with gr.TabItem('Motion') as motion_tab:
                         with gr.Column(visible=True) as only_2d_motion_column:
-                            # with gr.Row(variant='compact'):
-                                # show_info_on_ui = gr.Checkbox(label="Show info below params", value=d.show_info_on_ui, interactive=True)
                             with gr.Row(variant='compact'):
                                 zoom = gr.Textbox(label="Zoom", lines=1, value = da.zoom, interactive=True, info="scale the canvas size, multiplicatively. [static = 1.0]")
-                            # show_info_on_ui.change(fn=change_css, inputs=show_info_on_ui, outputs = gr.outputs.HTML())
                             with gr.Row(variant='compact'):
                                 angle = gr.Textbox(label="Angle", lines=1, value = da.angle, interactive=True, info="rotate canvas clockwise/anticlockwise in degrees per frame")
                             with gr.Row(variant='compact'):
