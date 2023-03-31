@@ -159,6 +159,8 @@ def DeforumArgs():
     W = 512 #
     H = 512 #
     W, H = map(lambda x: x - x % 64, (W, H))  # resize to integer multiple of 64
+    
+    show_info_on_ui = True
 
     #**Webui stuff**
     tiling = False
@@ -342,7 +344,23 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
             [],
             [i1]
             )
-            
+    
+    
+    def change_css(checkbox_status):
+        if checkbox_status:
+            display = "block"
+        else:
+            display = "none"
+        
+        html_template = f'''
+        <style>
+            #tab_deforum_interface .svelte-e8n7p6 {{
+                display: {display};
+            }}
+        </style>
+        '''
+        return html_template
+
     with gr.Blocks():
         with gr.Tabs():
             # RUN TAB
@@ -478,9 +496,12 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                     with gr.TabItem('Motion') as motion_tab:
                         with gr.Column(visible=True) as only_2d_motion_column:
                             with gr.Row(variant='compact'):
-                                zoom = gr.Textbox(label="Zoom", lines=1, value = da.zoom, interactive=True)
+                                show_info_on_ui = gr.Checkbox(label="Show info below params", value=d.show_info_on_ui, interactive=True)
                             with gr.Row(variant='compact'):
-                                angle = gr.Textbox(label="Angle", lines=1, value = da.angle, interactive=True)
+                                zoom = gr.Textbox(label="Zoom", lines=1, value = da.zoom, interactive=True, info="2D operator that scales the canvas size, multiplicatively. [static = 1.0]")
+                            # show_info_on_ui.change(fn=change_css, inputs=show_info_on_ui, outputs = gr.outputs.HTML())
+                            with gr.Row(variant='compact'):
+                                angle = gr.Textbox(label="Angle", lines=1, value = da.angle, interactive=True, info="2D operator to rotate canvas clockwise/anticlockwise in degrees per frame")
                             with gr.Row(variant='compact'):
                                 transform_center_x = gr.Textbox(label="Transform Center X", lines=1, value = da.transform_center_x, interactive=True)
                             with gr.Row(variant='compact'):
@@ -935,6 +956,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         save_sample_per_step = gr.Checkbox(label="Save sample per step", value=d.save_sample_per_step, interactive=True)
                         show_sample_per_step = gr.Checkbox(label="Show sample per step", value=d.show_sample_per_step, interactive=True)
     # Gradio's Change functions - hiding and renaming elements based on other elements
+    show_info_on_ui.change(fn=change_css, inputs=show_info_on_ui, outputs = gr.outputs.HTML())
     seed.change(fn=auto_hide_n_batch, inputs=seed, outputs=n_batch)
     fps.change(fn=change_gif_button_visibility, inputs=fps, outputs=make_gif)
     r_upscale_model.change(fn=update_r_upscale_factor, inputs=r_upscale_model, outputs=r_upscale_factor)
