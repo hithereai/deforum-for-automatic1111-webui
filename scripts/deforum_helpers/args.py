@@ -498,28 +498,28 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             with gr.Row(variant='compact'):
                                 show_info_on_ui = gr.Checkbox(label="Show info below params", value=d.show_info_on_ui, interactive=True)
                             with gr.Row(variant='compact'):
-                                zoom = gr.Textbox(label="Zoom", lines=1, value = da.zoom, interactive=True, info="2D operator that scales the canvas size, multiplicatively. [static = 1.0]")
+                                zoom = gr.Textbox(label="Zoom", lines=1, value = da.zoom, interactive=True, info="scale the canvas size, multiplicatively. [static = 1.0]")
                             # show_info_on_ui.change(fn=change_css, inputs=show_info_on_ui, outputs = gr.outputs.HTML())
                             with gr.Row(variant='compact'):
-                                angle = gr.Textbox(label="Angle", lines=1, value = da.angle, interactive=True, info="2D operator to rotate canvas clockwise/anticlockwise in degrees per frame")
+                                angle = gr.Textbox(label="Angle", lines=1, value = da.angle, interactive=True, info="rotate canvas clockwise/anticlockwise in degrees per frame")
                             with gr.Row(variant='compact'):
-                                transform_center_x = gr.Textbox(label="Transform Center X", lines=1, value = da.transform_center_x, interactive=True)
+                                transform_center_x = gr.Textbox(label="Transform Center X", lines=1, value = da.transform_center_x, interactive=True, info="x center axis for 2D angle/zoom")
                             with gr.Row(variant='compact'):
-                                transform_center_y = gr.Textbox(label="Transform Center Y", lines=1, value = da.transform_center_y, interactive=True)
+                                transform_center_y = gr.Textbox(label="Transform Center Y", lines=1, value = da.transform_center_y, interactive=True, info="y center axis for 2D angle/zoom")
                         with gr.Column(visible=True) as both_anim_mode_motion_params_column:
                             with gr.Row(variant='compact'):
-                                translation_x = gr.Textbox(label="Translation X", lines=1, value = da.translation_x, interactive=True)
+                                translation_x = gr.Textbox(label="Translation X", lines=1, value = da.translation_x, interactive=True, info="move canvas left/right in pixels per frame")
                             with gr.Row(variant='compact'):
-                                translation_y = gr.Textbox(label="Translation Y", lines=1, value = da.translation_y, interactive=True)
+                                translation_y = gr.Textbox(label="Translation Y", lines=1, value = da.translation_y, interactive=True, info="move canvas up/down in pixels per frame")
                         with gr.Column(visible=False) as only_3d_motion_column:
                             with gr.Row(variant='compact'):
-                                translation_z = gr.Textbox(label="Translation Z", lines=1, value = da.translation_z, interactive=True)
+                                translation_z = gr.Textbox(label="Translation Z", lines=1, value = da.translation_z, interactive=True, info="move canvas towards/away from view [speed set by FOV]")
                             with gr.Row(variant='compact'):
-                                rotation_3d_x = gr.Textbox(label="Rotation 3D X", lines=1, value = da.rotation_3d_x, interactive=True)
+                                rotation_3d_x = gr.Textbox(label="Rotation 3D X", lines=1, value = da.rotation_3d_x, interactive=True, info="tilt canvas up/down in degrees per frame")
                             with gr.Row(variant='compact'):
-                                rotation_3d_y = gr.Textbox(label="Rotation 3D Y", lines=1, value = da.rotation_3d_y, interactive=True)
+                                rotation_3d_y = gr.Textbox(label="Rotation 3D Y", lines=1, value = da.rotation_3d_y, interactive=True, info="pan canvas left/right in degrees per frame")
                             with gr.Row(variant='compact'):
-                                rotation_3d_z = gr.Textbox(label="Rotation 3D Z", lines=1, value = da.rotation_3d_z, interactive=True)
+                                rotation_3d_z = gr.Textbox(label="Rotation 3D Z", lines=1, value = da.rotation_3d_z, interactive=True, info="roll canvas clockwise/anticlockwise")
                         # 3D DEPTH & FOV ACCORD
                         with gr.Accordion('Depth Warping & FOV', visible=False, open=False) as depth_3d_warping_accord:
                             with gr.TabItem('Depth Warping'): 
