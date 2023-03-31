@@ -611,11 +611,11 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         </ul>
                         """)
                 with gr.Row(variant='compact'):
-                    animation_prompts = gr.Textbox(label="Prompts", lines=8, interactive=True, value = DeforumAnimPrompts())
+                    animation_prompts = gr.Textbox(label="Prompts", lines=8, interactive=True, value = DeforumAnimPrompts(), info="full prompts list in a JSON format.  value on left side is the frame number")
                 with gr.Row(variant='compact'):
-                    animation_prompts_positive = gr.Textbox(label="Prompts positive", lines=1, interactive=True, value = "")
+                    animation_prompts_positive = gr.Textbox(label="Prompts positive", lines=1, interactive=True, info="words to add to the start of all positive prompts")
                 with gr.Row(variant='compact'):
-                    animation_prompts_negative = gr.Textbox(label="Prompts negative", lines=1, interactive=True, value = "")
+                    animation_prompts_negative = gr.Textbox(label="Prompts negative", lines=1, interactive=True, info="words to add to the end of all negative prompts")
                 # COMPOSABLE MASK SCHEDULING ACCORD
                 with gr.Accordion('Composable Mask scheduling', open=False):
                     gr.HTML("""
@@ -795,7 +795,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         r_upscale_video = gr.Checkbox(label="Upscale", value=dv.r_upscale_video, interactive=True, info="upscale output imgs when run is finished")
                         r_upscale_model = gr.Dropdown(label="Upscale model", choices=['realesr-animevideov3', 'realesrgan-x4plus', 'realesrgan-x4plus-anime'], interactive=True, value = dv.r_upscale_model, type="value")
                         r_upscale_factor =  gr.Dropdown(choices=['x2', 'x3', 'x4'], label="Upscale factor", interactive=True, value=dv.r_upscale_factor, type="value")
-                        r_upscale_keep_imgs = gr.Checkbox(label="Keep Imgs", value=dv.r_upscale_keep_imgs, interactive=True)
+                        r_upscale_keep_imgs = gr.Checkbox(label="Keep Imgs", value=dv.r_upscale_keep_imgs, interactive=True, info="don't delete upscaled imgs")
                     with gr.Accordion('FFmpeg settings', visible=True, open=False) as ffmpeg_quality_accordion:
                         with gr.Row(equal_height=True, variant='compact', visible=True) as ffmpeg_set_row:
                             ffmpeg_crf = gr.Slider(minimum=0, maximum=51, step=1, label="CRF", value=dv.ffmpeg_crf, interactive=True)
