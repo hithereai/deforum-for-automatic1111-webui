@@ -29,45 +29,16 @@ from .save_images import save_image
 from .composable_masks import compose_mask_with_check
 from .settings import save_settings_from_animation_run
 from .deforum_controlnet import unpack_controlnet_vids, is_controlnet_enabled
+from .realtime_controls import lock, unlock, lock_frame, unlock_frame
+from .args import RealTimeControlArgs
 # Webui
 from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
-#FULHACK
-frame_path = "C:\\temp\\currentFrame.txt"
-frame_lockfile_path = "C:\\temp\\currentFrame.txt.locked"
-prompt_path = "C:\\temp\\prompt.txt"
-deforumSettingsLockFilePath = "C:\\temp\\prompt.txt.locked"
-def lock():
-    try:
-        with open(deforumSettingsLockFilePath, 'x') as lockfile:
-            # write the PID of the current process so you can debug
-            # later if a lockfile can be deleted after a program crash
-            lockfile.write(str(os.getpid()))
-            lockfile.close()
-            return True
-    except IOError:
-         # file already exists
-        #print("ALREADY LOCKED")
-        return False
-def unlock():
-    os.remove(deforumSettingsLockFilePath)
+from types import SimpleNamespace
 
-def lock_frame():
-    try:
-        with open(frame_lockfile_path, 'x') as lockfile:
-            # write the PID of the current process so you can debug
-            # later if a lockfile can be deleted after a program crash
-            lockfile.write(str(os.getpid()))
-            lockfile.close()
-            return True
-    except IOError:
-         # file already exists
-        #print("ALREADY LOCKED")
-        return False
-def unlock_frame():
-    os.remove(frame_lockfile_path)
-
-#END OF FULHACK
+rt_control_args = SimpleNamespace(**RealTimeControlArgs())
+frame_path = rt_control_args.frame_path
+prompt_path = rt_control_args.prompt_path
 
 def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
     # handle hybrid video generation

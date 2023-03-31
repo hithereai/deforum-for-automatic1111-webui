@@ -32,6 +32,14 @@ def Root():
     current_user_os = get_os()
     tmp_deforum_run_duplicated_folder = os.path.join(tempfile.gettempdir(), 'tmp_run_deforum')
     return locals()
+    
+def RealTimeControlArgs():
+    temp_folder_path = tempfile.gettempdir()
+    frame_path = os.path.join(temp_folder_path, "currentFrame.txt")
+    frame_lockfile_path = os.path.join(temp_folder_path,"currentFrame.txt.locked")
+    prompt_path = os.path.join(temp_folder_path,"prompt.txt")
+    deforumSettingsLockFilePath = os.path.join(temp_folder_path,"prompt.txt.locked")
+    return locals()
 
 def DeforumAnimArgs():
     animation_mode = '2D' # ['None', '2D', '3D', 'Video Input', 'Interpolation']

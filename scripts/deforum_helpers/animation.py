@@ -7,28 +7,16 @@ import py3d_tools as p3d
 import torch
 from einops import rearrange
 from .prompt import check_is_number
+from types import SimpleNamespace
+from .args import RealTimeControlArgs
+from .realtime_controls import lock, unlock
+rt_control_args = SimpleNamespace(**RealTimeControlArgs())
+prompt_path = rt_control_args.prompt_path
+# deforumSettingsLockFilePath = rt_control_args.deforumSettingsLockFilePath
 
 # Webui
 from modules.shared import state
 
-#FulHack
-prompt_path = "C:\\temp\\prompt.txt"
-deforumSettingsLockFilePath = "C:\\temp\\prompt.txt.locked"
-def lock():
-    try:
-        with open(deforumSettingsLockFilePath, 'x') as lockfile:
-            # write the PID of the current process so you can debug
-            # later if a lockfile can be deleted after a program crash
-            lockfile.write(str(os.getpid()))
-            lockfile.close()
-            return True
-    except IOError:
-         # file already exists
-        #print("ALREADY LOCKED")
-        return False
-def unlock():
-    os.remove(deforumSettingsLockFilePath)
-#END OF FULHACK
 def sample_from_cv2(sample: np.ndarray) -> torch.Tensor:
     sample = ((sample.astype(float) / 255.0) * 2) - 1
     sample = sample[None].transpose(0, 3, 1, 2).astype(np.float16)
