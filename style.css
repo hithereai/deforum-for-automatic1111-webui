@@ -50,6 +50,10 @@
 	gap: 1px !important;
 }
 
+#tab_deforum_interface .svelte-e8n7p6 { /* hide at default gradio's info section from params at ui*/
+	display: none;
+}
+
 /* OLD rules THAT MIGHT NEED TO BE REVIVED AT SOME POINT: */
 
 /* #extra_schedules::before { */
@@ -60,10 +64,6 @@
 	/* min-height: 36px; */
 	/* height: 36px !important; */
 	/* padding: 8px !important; */
-/* } */
-
-/* #tab_deforum_interface .svelte-e8n7p6 { */
-	/* display: none; */
 /* } */
 
 /* #vid_to_interpolate_chosen_file, #pics_to_interpolate_chosen_file, #vid_to_upscale_chosen_file,  #controlnet_input_video_chosen_file, #controlnet_input_video_mask_chosen_file, #vid_to_depth_chosen_file { */

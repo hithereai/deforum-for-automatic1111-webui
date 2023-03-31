@@ -357,7 +357,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
         html_template = f'''
         <style>
             #tab_deforum_interface .svelte-e8n7p6 {{
-                display: {display};
+                display: {display} !important;
             }}
         </style>
         '''
