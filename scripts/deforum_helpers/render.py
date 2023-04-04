@@ -192,13 +192,21 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     #Webui
     state.job_count = anim_args.max_frames
-
+    # state.skipped = False
+    import time
     while frame_idx < (anim_args.max_frames if not anim_args.use_mask_video else anim_args.max_frames - 1):
         #Webui
         state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
         state.job_no = frame_idx + 1
         if state.interrupted:
             break
+        paused = False
+        if state.skipped:
+            paused = True
+            state.skipped = False
+        while paused and not state.skipped:
+            time.sleep(1)
+        state.skipped = False
 
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
 
