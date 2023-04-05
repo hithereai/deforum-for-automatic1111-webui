@@ -1,4 +1,4 @@
-from modules.shared import cmd_opts
+from modules.shared import cmd_opts, opts
 from modules.processing import get_fixed_seed
 from modules.ui_components import FormRow
 import modules.shared as sh
@@ -7,7 +7,7 @@ import os
 from .frame_interpolation import set_interp_out_fps, gradio_f_interp_get_fps_and_fcount, process_interp_vid_upload_logic, process_interp_pics_upload_logic
 from .upscaling import process_ncnn_upscale_vid_upload_logic
 from .vid2depth import process_depth_vid_upload_logic
-from .video_audio_utilities import find_ffmpeg_binary, ffmpeg_stitch_video, direct_stitch_vid_from_frames, get_quick_vid_info, extract_number
+from .video_audio_utilities import find_ffmpeg_binary, ffmpeg_stitch_video, direct_stitch_vid_from_frames, get_quick_vid_info, extract_number, get_ffmpeg_params
 from .gradio_funcs import *
 from .general_utils import get_os, get_deforum_version, custom_placeholder_format, test_long_path_support, get_max_path_length, substitute_placeholders
 from .deforum_controlnet import setup_controlnet_ui, controlnet_component_names, controlnet_infotext
@@ -77,7 +77,7 @@ def DeforumAnimArgs():
     noise_mask_schedule = '0: ("{video_mask}")'
     # Checkpoint Scheduling
     enable_checkpoint_scheduling = False
-    checkpoint_schedule = '0: ("model1.ckpt"), 100: ("model2.ckpt")'
+    checkpoint_schedule = '0: ("model1.ckpt"), 100: ("model2.safetensors")'
     # CLIP skip Scheduling
     enable_clipskip_scheduling = False 
     clipskip_schedule = '0: (2)'
@@ -271,9 +271,6 @@ def DeforumOutputArgs():
     delete_imgs = False # True will delete all imgs after a successful mp4 creation
     image_path = "C:/SD/20230124234916_%09d.png" 
     mp4_path = "testvidmanualsettings.mp4" 
-    ffmpeg_location = find_ffmpeg_binary()
-    ffmpeg_crf = '17'
-    ffmpeg_preset = 'slow'
     add_soundtrack = 'None' # ["File","Init Video"]
     soundtrack_path = "https://deforum.github.io/a1/A1.mp3"
     # End-Run upscaling
@@ -359,9 +356,9 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                     W = gr.Slider(label="Width", minimum=64, maximum=2048, step=64, value=d.W, interactive=True)
                     H = gr.Slider(label="Height", minimum=64, maximum=2048, step=64, value=d.H, interactive=True) 
                 with gr.Row(variant='compact'):
-                    seed = gr.Number(label="Seed", value=d.seed, interactive=True, precision=0)
-                    n_batch = gr.Slider(label="# of vids", minimum=1, maximum=100, step=1, value=d.n_batch, interactive=True)
-                    batch_name = gr.Textbox(label="Batch name", lines=1, interactive=True, value = d.batch_name)
+                    seed = gr.Number(label="Seed", value=d.seed, interactive=True, precision=0, info="Starting seed for the animation. -1 for random")
+                    n_batch = gr.Slider(label="# of vids", minimum=1, maximum=100, step=1, value=d.n_batch, interactive=True, info="if seed is set to random (-1), generate a few vids in one run")
+                    batch_name = gr.Textbox(label="Batch name", lines=1, interactive=True, value = d.batch_name, info="output images will be placed in a folder with this name ({timestring} token will be replaced) inside the img2img output folder. Supports params placeholders. e.g {seed}, {w}, {h}, {prompts}")
                 with gr.Accordion('Restore Faces, Tiling & more', open=False) as run_more_settings_accord:
                     with gr.Row(variant='compact'):
                         restore_faces = gr.Checkbox(label='Restore Faces', value=d.restore_faces)
@@ -463,19 +460,19 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         with gr.Row(variant='compact'):
                             enable_steps_scheduling = gr.Checkbox(label="Enable steps scheduling", value=da.enable_steps_scheduling, interactive=True)
                         with gr.Row(variant='compact'):
-                            steps_schedule = gr.Textbox(label="Steps schedule", lines=1, value = da.steps_schedule, interactive=True)
+                            steps_schedule = gr.Textbox(label="Steps schedule", lines=1, value = da.steps_schedule, interactive=True, info="mainly allows using more than 200 steps. otherwise, it's a mirror-like param of 'strength schedule'")
                     # Sampler Scheduling
                     with gr.TabItem('Sampler') as a14:
                         with gr.Row(variant='compact'):
                             enable_sampler_scheduling = gr.Checkbox(label="Enable sampler scheduling", value=da.enable_sampler_scheduling, interactive=True)
                         with gr.Row(variant='compact'):
-                            sampler_schedule = gr.Textbox(label="Sampler schedule", lines=1, value = da.sampler_schedule, interactive=True)
+                            sampler_schedule = gr.Textbox(label="Sampler schedule", lines=1, value = da.sampler_schedule, interactive=True, info="allows keyframing different samplers. Use names as they appear in ui dropdown in 'run' tab")
                     # Checkpoint Scheduling
                     with gr.TabItem('Checkpoint') as a15:
                         with gr.Row(variant='compact'):
                             enable_checkpoint_scheduling = gr.Checkbox(label="Enable checkpoint scheduling", value=da.enable_checkpoint_scheduling, interactive=True)
                         with gr.Row(variant='compact'):
-                            checkpoint_schedule = gr.Textbox(label="Checkpoint schedule", lines=1, value = da.checkpoint_schedule, interactive=True)
+                            checkpoint_schedule = gr.Textbox(label="Checkpoint schedule", lines=1, value = da.checkpoint_schedule, interactive=True, info="allows keyframing different sd models. use *full* name as appears in ui dropdown")
                 # MOTION INNER TAB
                 with gr.Tabs(elem_id='motion_noise_etc'):
                     with gr.TabItem('Motion') as motion_tab:
@@ -507,15 +504,15 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             with gr.TabItem('Depth Warping'): 
                                 with gr.Row(variant='compact'):
                                     use_depth_warping = gr.Checkbox(label="Use depth warping", value=da.use_depth_warping, interactive=True)
-                                    midas_weight = gr.Number(label="MiDaS weight", value=da.midas_weight, interactive=True)
+                                    midas_weight = gr.Number(label="MiDaS weight", value=da.midas_weight, interactive=True, info="sets a midpoint at which a depthmap is to be drawn: range [-1 to +1]")
                                 with gr.Row(variant='compact'):
-                                    padding_mode = gr.Radio(['border', 'reflection', 'zeros'], label="Padding mode", value=da.padding_mode, elem_id="padding_mode")
+                                    padding_mode = gr.Radio(['border', 'reflection', 'zeros'], label="Padding mode", value=da.padding_mode, elem_id="padding_mode", info="controls the handling of pixels outside the field of view as they come into the scene. hover on the options for more info")
                                     sampling_mode = gr.Radio(['bicubic', 'bilinear', 'nearest'], label="Sampling mode", value=da.sampling_mode, elem_id="sampling_mode")
                             with gr.TabItem('Field Of View', visible=False, open=False) as fov_accord:
                                 with gr.Row(variant='compact'):
-                                    fov_schedule = gr.Textbox(label="FOV schedule", lines=1, value = da.fov_schedule, interactive=True)
+                                    fov_schedule = gr.Textbox(label="FOV schedule", lines=1, value = da.fov_schedule, interactive=True, info="adjusts the scale at which the canvas is moved in 3D by the translation_z value. [maximum range -180 to +180, with 0 being undefined. Values closer to 180 will make the image have less depth, while values closer to 0 will allow more depth]")
                                 with gr.Row(variant='compact'):
-                                    aspect_ratio_schedule = gr.Textbox(label="Aspect Ratio schedule", lines=1, value = da.aspect_ratio_schedule, interactive=True)
+                                    aspect_ratio_schedule = gr.Textbox(label="Aspect Ratio schedule", lines=1, value = da.aspect_ratio_schedule, interactive=True, info="adjusts the aspect ratio for the depth calculation")
                                 with gr.Row(variant='compact'):
                                     near_schedule = gr.Textbox(label="Near schedule", lines=1, value = da.near_schedule, interactive=True)
                                 with gr.Row(variant='compact'):
@@ -593,9 +590,9 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                 with gr.Row(variant='compact'):
                     animation_prompts = gr.Textbox(label="Prompts", lines=8, interactive=True, value = DeforumAnimPrompts(), info="full prompts list in a JSON format.  value on left side is the frame number")
                 with gr.Row(variant='compact'):
-                    animation_prompts_positive = gr.Textbox(label="Prompts positive", lines=1, interactive=True, info="words to add to the start of all positive prompts")
+                    animation_prompts_positive = gr.Textbox(label="Prompts positive", lines=1, interactive=True, placeholder="words in here will be added to the start of all positive prompts")
                 with gr.Row(variant='compact'):
-                    animation_prompts_negative = gr.Textbox(label="Prompts negative", lines=1, interactive=True, info="words to add to the end of all negative prompts")
+                    animation_prompts_negative = gr.Textbox(label="Prompts negative", lines=1, interactive=True, placeholder="words in here will be added to the end of all negative prompts")
                 # COMPOSABLE MASK SCHEDULING ACCORD
                 with gr.Accordion('Composable Mask scheduling', open=False):
                     gr.HTML("""
@@ -776,12 +773,6 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         r_upscale_model = gr.Dropdown(label="Upscale model", choices=['realesr-animevideov3', 'realesrgan-x4plus', 'realesrgan-x4plus-anime'], interactive=True, value = dv.r_upscale_model, type="value")
                         r_upscale_factor =  gr.Dropdown(choices=['x2', 'x3', 'x4'], label="Upscale factor", interactive=True, value=dv.r_upscale_factor, type="value")
                         r_upscale_keep_imgs = gr.Checkbox(label="Keep Imgs", value=dv.r_upscale_keep_imgs, interactive=True, info="don't delete upscaled imgs")
-                    with gr.Accordion('FFmpeg settings', visible=True, open=False) as ffmpeg_quality_accordion:
-                        with gr.Row(equal_height=True, variant='compact', visible=True) as ffmpeg_set_row:
-                            ffmpeg_crf = gr.Slider(minimum=0, maximum=51, step=1, label="CRF", value=dv.ffmpeg_crf, interactive=True, info="enables to specify a target value that maps to a specific quality by adjusting the bitrates automatically based on the input video. Rec values 17-28")
-                            ffmpeg_preset = gr.Dropdown(label="Preset", choices=['veryslow', 'slower', 'slow', 'medium', 'fast', 'faster', 'veryfast', 'superfast', 'ultrafast'], interactive=True, value = dv.ffmpeg_preset, type="value", info="ffmpeg's preset is a collection of options that will provide a certain encoding speed to compression ratio. A slower preset will provide better compression (compression is quality per filesize)")
-                        with gr.Row(equal_height=True, variant='compact', visible=True) as ffmpeg_location_row:
-                            ffmpeg_location = gr.Textbox(label="Location", lines=1, interactive=True, value = dv.ffmpeg_location, info="the path in which ffmpeg binary is installed. if you have ffmpeg added to OS's PATH you can use just 'ffmpeg' as the value")
                 # FRAME INTERPOLATION TAB
                 with gr.Tab('Frame Interpolation') as frame_interp_tab:
                     with gr.Accordion('Important notes and Help', open=False, elem_id="f_interp_accord"):
@@ -839,8 +830,8 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                                 # Show a text about CLI outputs:
                                 gr.HTML("* check your CLI for outputs *", elem_id="below_interpolate_butts_msg") # TODO: CSS THIS TO CENTER OF ROW!
                                 # make the functin call when the interpolation button is clicked
-                                interpolate_button.click(upload_vid_to_interpolate,inputs=[vid_to_interpolate_chosen_file, frame_interpolation_engine, frame_interpolation_x_amount, frame_interpolation_slow_mo_enabled, frame_interpolation_slow_mo_amount, frame_interpolation_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset, in_vid_fps_ui_window])
-                                interpolate_pics_button.click(upload_pics_to_interpolate,inputs=[pics_to_interpolate_chosen_file, frame_interpolation_engine, frame_interpolation_x_amount, frame_interpolation_slow_mo_enabled, frame_interpolation_slow_mo_amount, frame_interpolation_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset, fps, add_soundtrack, soundtrack_path])
+                                interpolate_button.click(upload_vid_to_interpolate,inputs=[vid_to_interpolate_chosen_file, frame_interpolation_engine, frame_interpolation_x_amount, frame_interpolation_slow_mo_enabled, frame_interpolation_slow_mo_amount, frame_interpolation_keep_imgs, in_vid_fps_ui_window])
+                                interpolate_pics_button.click(upload_pics_to_interpolate,inputs=[pics_to_interpolate_chosen_file, frame_interpolation_engine, frame_interpolation_x_amount, frame_interpolation_slow_mo_enabled, frame_interpolation_slow_mo_amount, frame_interpolation_keep_imgs, fps, add_soundtrack, soundtrack_path])
                 # VIDEO UPSCALE TAB
                 with gr.TabItem('Video Upscaling'):
                     vid_to_upscale_chosen_file = gr.File(label="Video to Upscale", interactive=True, file_count="single", file_types=["video"], elem_id="vid_to_upscale_chosen_file")
@@ -857,7 +848,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                                 ncnn_upscale_factor =  gr.Dropdown(choices=['x2', 'x3', 'x4'], label="Upscale factor", interactive=True, value="x2", type="value")
                                 ncnn_upscale_keep_imgs = gr.Checkbox(label="Keep Imgs", value=True, interactive=True) # fix value
                         ncnn_upscale_btn = gr.Button(value="*Upscale uploaded video*")
-                        ncnn_upscale_btn.click(ncnn_upload_vid_to_upscale,inputs=[vid_to_upscale_chosen_file, ncnn_upscale_in_vid_fps_ui_window, ncnn_upscale_in_vid_res, ncnn_upscale_out_vid_res, ncnn_upscale_model, ncnn_upscale_factor, ncnn_upscale_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset])
+                        ncnn_upscale_btn.click(ncnn_upload_vid_to_upscale,inputs=[vid_to_upscale_chosen_file, ncnn_upscale_in_vid_fps_ui_window, ncnn_upscale_in_vid_res, ncnn_upscale_out_vid_res, ncnn_upscale_model, ncnn_upscale_factor, ncnn_upscale_keep_imgs])
                         with gr.Column(visible=False): # Upscale V1. Disabled 06-03-23
                             selected_tab = gr.State(value=0)
                             with gr.Tabs(elem_id="extras_resize_mode"):
@@ -899,7 +890,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         invert = gr.Checkbox(label='Closer is brighter', value=True, elem_id="invert")
                     with gr.Row(variant='compact'):
                         end_blur = gr.Slider(label="End blur width", value=0, minimum=0, maximum=255, step=1)
-                        midas_weight_vid2depth = gr.Slider(label="MiDaS weight (vid2depth)", value=da.midas_weight, minimum=0, maximum=1, step=0.05, interactive=True)
+                        midas_weight_vid2depth = gr.Slider(label="MiDaS weight (vid2depth)", value=da.midas_weight, minimum=0, maximum=1, step=0.05, interactive=True, info="sets a midpoint at which a depthmap is to be drawn: range [-1 to +1]")
                         depth_keep_imgs = gr.Checkbox(label='Keep Imgs', value=True, elem_id="depth_keep_imgs")
                     with gr.Row(variant='compact'):
                         # This is the actual button that's pressed to initiate the Upscaling:
@@ -908,7 +899,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         # Show a text about CLI outputs:
                         gr.HTML("* check your CLI for outputs")
                         # make the function call when the UPSCALE button is clicked
-                    depth_btn.click(upload_vid_to_depth,inputs=[vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, depth_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset])
+                    depth_btn.click(upload_vid_to_depth,inputs=[vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, depth_keep_imgs])
                 # STITCH FRAMES TO VID TAB
                 with gr.TabItem('Frames to Video') as stitch_imgs_to_vid_row:
                     with gr.Row(visible=False):
@@ -923,7 +914,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                     with gr.Row(variant='compact'):
                           image_path = gr.Textbox(label="Image path", lines=1, interactive=True, value = dv.image_path)
                     ffmpeg_stitch_imgs_but = gr.Button(value="*Stitch frames to video*")
-                    ffmpeg_stitch_imgs_but.click(direct_stitch_vid_from_frames,inputs=[image_path, fps, ffmpeg_location, ffmpeg_crf, ffmpeg_preset, add_soundtrack, soundtrack_path])
+                    ffmpeg_stitch_imgs_but.click(direct_stitch_vid_from_frames,inputs=[image_path, fps, add_soundtrack, soundtrack_path])
                 # **OLD + NON ACTIVES AREA**
                 with gr.Accordion(visible=False, label='INVISIBLE') as not_in_use_accordion:
                         mp4_path = gr.Textbox(label="MP4 path", lines=1, interactive=True, value = dv.mp4_path)
@@ -981,7 +972,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
     color_coherence.change(fn=change_color_coherence_video_every_N_frames_visibility, inputs=color_coherence, outputs=color_coherence_video_every_N_frames_row)
     color_coherence.change(fn=change_color_coherence_image_path_visibility, inputs=color_coherence, outputs=color_coherence_image_path_row)
     noise_type.change(fn=change_perlin_visibility, inputs=noise_type, outputs=perlin_row)
-    skip_video_creation_outputs = [fps_out_format_row, soundtrack_row, ffmpeg_quality_accordion, store_frames_in_ram, make_gif, r_upscale_row, delete_imgs]
+    skip_video_creation_outputs = [fps_out_format_row, soundtrack_row, store_frames_in_ram, make_gif, r_upscale_row, delete_imgs]
     for output in skip_video_creation_outputs:
         skip_video_creation.change(fn=change_visibility_from_skip_video, inputs=skip_video_creation, outputs=output)  
     frame_interpolation_slow_mo_enabled.change(fn=hide_slow_mo,inputs=frame_interpolation_slow_mo_enabled,outputs=frame_interp_slow_mo_amount_column)
@@ -1056,7 +1047,7 @@ args_names =    str(r'''W, H, tiling, restore_faces,
                         reroll_blank_frames,reroll_patience'''
                     ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
 video_args_names =  str(r'''skip_video_creation,
-                            fps, make_gif, delete_imgs, output_format, ffmpeg_location, ffmpeg_crf, ffmpeg_preset,
+                            fps, make_gif, delete_imgs, output_format,
                             add_soundtrack, soundtrack_path,
                             r_upscale_video, r_upscale_model, r_upscale_factor, r_upscale_keep_imgs,
                             render_steps,
@@ -1196,22 +1187,23 @@ def process_args(args_dict_main):
     return root, args, anim_args, video_args, parseq_args, loop_args, controlnet_args
     
 # Local gradio-to-frame-interoplation function. *Needs* to stay here since we do Root() and use gradio elements directly, to be changed in the future
-def upload_vid_to_interpolate(file, engine, x_am, sl_enabled, sl_am, keep_imgs, f_location, f_crf, f_preset, in_vid_fps):
+def upload_vid_to_interpolate(file, engine, x_am, sl_enabled, sl_am, keep_imgs, in_vid_fps):
     # print msg and do nothing if vid not uploaded or interp_x not provided
     if not file or engine == 'None':
         return print("Please upload a video and set a proper value for 'Interp X'. Can't interpolate x0 times :)")
+    f_location, f_crf, f_preset = get_ffmpeg_params()
 
     root_params = Root()
     f_models_path = root_params['models_path']
 
     process_interp_vid_upload_logic(file, engine, x_am, sl_enabled, sl_am, keep_imgs, f_location, f_crf, f_preset, in_vid_fps, f_models_path, file.orig_name)
 
-def upload_pics_to_interpolate(pic_list, engine, x_am, sl_enabled, sl_am, keep_imgs, f_location, f_crf, f_preset, fps, add_audio, audio_track):
+def upload_pics_to_interpolate(pic_list, engine, x_am, sl_enabled, sl_am, keep_imgs, fps, add_audio, audio_track):
     from PIL import Image
     
     if pic_list is None or len(pic_list) < 2:
         return print("Please upload at least 2 pics for interpolation.")
-        
+    f_location, f_crf, f_preset = get_ffmpeg_params()
     # make sure all uploaded pics have the same resolution
     pic_sizes = [Image.open(picture_path.name).size for picture_path in pic_list]
     if len(set(pic_sizes)) != 1:
@@ -1224,20 +1216,21 @@ def upload_pics_to_interpolate(pic_list, engine, x_am, sl_enabled, sl_am, keep_i
     
     process_interp_pics_upload_logic(pic_list, engine, x_am, sl_enabled, sl_am, keep_imgs, f_location, f_crf, f_preset, fps, f_models_path, resolution, add_audio, audio_track)
 
-def upload_vid_to_depth(vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, depth_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset):
+def upload_vid_to_depth(vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, depth_keep_imgs):
     # print msg and do nothing if vid not uploaded
     if not vid_to_depth_chosen_file:
         return print("Please upload a video :()")
-    
+    f_location, f_crf, f_preset = get_ffmpeg_params()
     root_params = Root()
     f_models_path = root_params['models_path']
     
     process_depth_vid_upload_logic(vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, vid_to_depth_chosen_file.orig_name, depth_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset, f_models_path)
 
-def ncnn_upload_vid_to_upscale(vid_path, in_vid_fps, in_vid_res, out_vid_res, upscale_model, upscale_factor, keep_imgs, f_location, f_crf, f_preset):
+def ncnn_upload_vid_to_upscale(vid_path, in_vid_fps, in_vid_res, out_vid_res, upscale_model, upscale_factor, keep_imgs):
     if vid_path is None:
         print("Please upload a video :)")
         return
+    f_location, f_crf, f_preset = get_ffmpeg_params()
     root_params = Root()
     f_models_path = root_params['models_path']
     current_user = root_params['current_user_os']
