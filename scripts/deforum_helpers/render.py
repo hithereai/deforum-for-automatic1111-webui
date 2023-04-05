@@ -261,7 +261,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             depth_model.to(root.device)
         
         if turbo_steps == 1 and opts.data.get("deforum_save_gen_info_as_srt"):
-            write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f" F#: {frame_idx}; Seed: {args.seed}; StrSch: {keys.strength_schedule_series[frame_idx]}; CFG: {keys.cfg_scale_schedule_series[frame_idx]}; Steps: {keys.steps_schedule_series[frame_idx]}")
+            write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f"F#: {frame_idx}; Seed: {args.seed}; StrSch: {keys.strength_schedule_series[frame_idx]}; CFG: {keys.cfg_scale_schedule_series[frame_idx]}; Steps: {keys.steps_schedule_series[frame_idx]}")
 
             
         # emit in-between frames
