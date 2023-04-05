@@ -234,6 +234,7 @@ def get_manual_frame_to_vid_output_path(input_path):
 
 def direct_stitch_vid_from_frames(image_path, fps, add_soundtrack, audio_path):
     f_location, f_crf, f_preset = get_ffmpeg_params()
+    
     matching_files = glob.glob(re.sub(r'%\d*d', '*', image_path))
     min_id = None
     for file in matching_files:
