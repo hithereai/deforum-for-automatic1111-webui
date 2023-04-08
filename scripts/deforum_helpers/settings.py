@@ -5,6 +5,7 @@ import deforum_helpers.args as deforum_args
 from .args import mask_fill_choices, DeforumArgs, DeforumAnimArgs
 from .deprecation_utils import handle_deprecated_settings
 from .general_utils import get_deforum_version
+from .prompt import prompts_to_listlist
 from modules.shared import opts
 import modules.shared as sh
 import logging

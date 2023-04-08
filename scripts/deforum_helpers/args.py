@@ -12,6 +12,8 @@ from .gradio_funcs import *
 from .general_utils import get_os, get_deforum_version, custom_placeholder_format, test_long_path_support, get_max_path_length, substitute_placeholders
 from .deforum_controlnet import setup_controlnet_ui, controlnet_component_names, controlnet_infotext
 import tempfile
+import json
+from .prompt import prompts_to_dataframe, prompts_to_listlist, prompts_from_dataframe
 
 DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
         
@@ -601,12 +603,41 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         <li>Prompts are stored in JSON format. If you've got an error, check it in a <a style="color:SteelBlue" href="https://odu.github.io/slingjsonlint/">JSON Validator</a></li>
                         </ul>
                         """)
-                with gr.Row(variant='compact'):
-                    animation_prompts = gr.Textbox(label="Prompts", lines=8, interactive=True, value = DeforumAnimPrompts(), info="full prompts list in a JSON format.  value on left side is the frame number")
-                with gr.Row(variant='compact'):
-                    animation_prompts_positive = gr.Textbox(label="Prompts positive", lines=1, interactive=True, placeholder="words in here will be added to the start of all positive prompts")
-                with gr.Row(variant='compact'):
-                    animation_prompts_negative = gr.Textbox(label="Prompts negative", lines=1, interactive=True, placeholder="words in here will be added to the end of all negative prompts")
+                # with gr.Row(variant='compact'):
+                    # animation_prompts = gr.Textbox(label="Prompts", lines=8, interactive=True, value = DeforumAnimPrompts(), info="full prompts list in a JSON format.  value on left side is the frame number")
+                # with gr.Row(variant='compact'):
+                    # animation_prompts_positive = gr.Textbox(label="Prompts positive", lines=1, interactive=True, placeholder="words in here will be added to the start of all positive prompts")
+                # with gr.Row(variant='compact'):
+                    # animation_prompts_negative = gr.Textbox(label="Prompts negative", lines=1, interactive=True, placeholder="words in here will be added to the end of all negative prompts")
+                with gr.Row():
+                    animation_prompts_df = gr.Dataframe(
+                        headers=["Start frame", "Prompt", "Negative prompt"],
+                        datatype=["number", "str", "str"],
+                        label="Prompts",
+                        col_count=(3, 'fixed'),
+                        row_count=(1, 'dynamic'),
+                        max_rows=None, #infinite
+                        max_cols=3,
+                        interactive=True,
+                        wrap=True,
+                        type='pandas',
+                        value=prompts_to_listlist(DeforumAnimPrompts()),
+                    )
+                with gr.Row():
+                    animation_prompts_positive = gr.Textbox(label="Common positive prompt", lines=1, interactive=True, value = "")
+                with gr.Row():
+                    animation_prompts_negative = gr.Textbox(label="Common negative prompt", lines=1, interactive=True, value = "")
+                with gr.Row():
+                    animation_prompts = gr.Textbox(label="Prompts JSON", lines=8, interactive=True, value = DeforumAnimPrompts())
+                # update button functions
+                def update_prompts_json(prompts_df):
+                    return prompts_from_dataframe(prompts_df)
+                animation_prompts_df.change(update_prompts_json, inputs=[animation_prompts_df], outputs=[animation_prompts])
+                def update_prompts_df(prompts_json):
+                    return prompts_to_listlist(prompts_json)
+                with gr.Row():
+                    load_from_json = gr.Button(value="Load from JSON", elem_id="load_from_json")
+                load_from_json.click(update_prompts_df, inputs=[animation_prompts], outputs=[animation_prompts_df])
                 # COMPOSABLE MASK SCHEDULING ACCORD
                 with gr.Accordion('Composable Mask scheduling', open=False):
                     gr.HTML("""

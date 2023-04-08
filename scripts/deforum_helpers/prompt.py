@@ -1,5 +1,8 @@
 import re
 import numexpr
+import numpy as np
+import pandas as pd
+import json
 from modules.shared import opts
 
 DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
@@ -121,3 +124,43 @@ def interpolate_prompts(animation_prompts, max_frames):
     
     # Return the filled series, in case max_frames is greater than the last keyframe or any ranges were skipped.
     return prompt_series.ffill().bfill()
+
+
+def prompts_to_dataframe(prompts_json_str):
+    prompts_json = json.loads(prompts_json_str)
+    df = pd.DataFrame(columns=['Start frame', 'Prompt', 'Negative prompt'])
+    l = []
+    for key, _ in prompts_json.items():
+        l += [int(key)]
+    l.sort()
+    for key in l:
+        row = {}
+        row['Start frame'] = key
+        prompt = prompts_json[str(key)]
+        if '--neg' in prompt:
+            prompt_parts = prompt.split('--neg')
+            if len(prompt_parts) > 2:
+                prompt_parts[1] = "".join(prompt_parts[2:])
+            row['Prompt'] = prompt_parts[0]
+            row['Negative prompt'] = prompt_parts[1]
+        else:
+            row['Prompt'] = prompt
+            row['Negative prompt'] = ""
+        df = df.append(row, ignore_index=True)
+    return df
+
+def prompts_to_listlist(prompts_json_str):
+    df = prompts_to_dataframe(prompts_json_str)
+    ret = []
+    for _, row in df.iterrows():
+        ret.append([row['Start frame'], row['Prompt'], row['Negative prompt']])
+    return ret
+
+def prompts_from_dataframe(prompts_df):
+    prompts = {}
+    for _, row in prompts_df.iterrows():
+        prompt = row['Prompt']
+        if row['Negative prompt'] is not None and len(row['Negative prompt']) > 1:
+            prompt += f" --neg {row['Negative prompt']}"
+        prompts[row['Start frame']] = prompt
+    return json.dumps(prompts, indent=4, separators=(',', ': '))
