@@ -615,15 +615,16 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         interactive=True,
                         wrap=True,
                         type='pandas',
-                        value=prompts_to_listlist(DeforumAnimPrompts()),
+                        value=prompts_to_listlist(DeforumAnimPrompts())
                     )
+                # animation_prompts_df.select(on_select, None) # TODO: USE IT?!
                 with gr.Row():
                     animation_prompts_positive = gr.Textbox(label="Prompts positive", lines=1, interactive=True, placeholder="words in here will be added to the start of all positive prompts")
                 with gr.Row():
                     animation_prompts_negative = gr.Textbox(label="Prompts negative", lines=1, interactive=True, placeholder="words in here will be added to the end of all negative prompts")
                 with gr.Row():
-                    # animation_prompts = gr.Textbox(label="Prompts JSON", lines=8, interactive=True, value = DeforumAnimPrompts())
-                    animation_prompts = gr.JSON(label="Prompts JSON", lines=8, interactive=True, value = DeforumAnimPrompts())
+                    animation_prompts = gr.Textbox(label="Prompts JSON", lines=8, interactive=True, value = DeforumAnimPrompts())
+                    # animation_prompts = gr.JSON(label="Prompts JSON", lines=8, interactive=True, value = DeforumAnimPrompts())
                     
                 # update button functions
                 def update_prompts_json(prompts_df):
