@@ -37,6 +37,8 @@ from modules.shared import opts, cmd_opts, state
 from modules.ui import create_output_panel, plaintext_to_html, wrap_gradio_call
 from types import SimpleNamespace
 
+DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
+
 def run_deforum(*args, **kwargs):
     f_location, f_crf, f_preset = get_ffmpeg_params() # get params for ffmpeg exec
     component_names = deforum_args.get_component_names()
@@ -56,8 +58,15 @@ def run_deforum(*args, **kwargs):
         print(f"Git commit: {get_deforum_version()}")
         args_dict['self'] = None
         args_dict['p'] = p
-        
-        root, args, anim_args, video_args, parseq_args, loop_args, controlnet_args = deforum_args.process_args(args_dict, i)
+
+        args_loaded_ok, root, args, anim_args, video_args, parseq_args, loop_args, controlnet_args = deforum_args.process_args(args_dict, i)
+        if args_loaded_ok is False:
+            if times_to_run > 1:
+                print(f"\033[31mWARNING:\033[0m skipped running from the following setting file, as it contains an invalid JSON: {os.path.basename(args_dict['custom_settings_file'][i].name)}")
+                continue
+            else:
+                print(f"\033[31mERROR!\033[0m Couldn't load data from '{os.path.basename(args_dict['custom_settings_file'][i].name)}'. Make sure it's a valid JSON using a JSON validator")
+                return None, None, None, None, f"Couldn't load data from '{os.path.basename(args_dict['custom_settings_file'][i].name)}'. Make sure it's a valid JSON using a JSON validator", plaintext_to_html('')
 
         root.clipseg_model = None
         try:
@@ -174,8 +183,6 @@ def run_deforum(*args, **kwargs):
             handle_imgs_deletion(vid_path=mp4_path, imgs_folder_path=args.outdir, batch_id=args.timestring)
             
         root.initial_info += "\n The animation is stored in " + args.outdir
-        root.initial_info += "\n Timestring = " + args.timestring + '\n'
-        root.initial_info += "Only the first frame is shown in webui not to clutter the memory"
         reset_frames_cache(root) # cleanup the RAM in any case
         processed = Processed(p, [root.first_frame], root.initial_seed, root.initial_info)
         
@@ -195,7 +202,7 @@ def run_deforum(*args, **kwargs):
             persistent_sett_path = opts.data.get("deforum_persistent_settings_path")
             deforum_settings.save_settings_from_animation_run(args, anim_args, parseq_args, loop_args, controlnet_args, video_args, root, persistent_sett_path)
 
-    return processed.images, generation_info_js, plaintext_to_html(processed.info), plaintext_to_html('')
+    return processed.images, args.timestring, generation_info_js, plaintext_to_html(processed.info), plaintext_to_html('')
 
 def on_ui_tabs():
     with gr.Blocks(analytics_enabled=False) as deforum_interface:
@@ -259,9 +266,8 @@ def on_ui_tabs():
                 
                 deforum_gallery, generation_info, html_info, html_log = create_output_panel("deforum", opts.outdir_img2img_samples)
 
-                gr.HTML("<p>Settings file Path can be relative to webui folder OR full - absolute </p>", elem_id='settings_path_msg')
                 with gr.Row(variant='compact'):
-                    settings_path = gr.Textbox("deforum_settings.txt", elem_id='deforum_settings_path', label="Settings File")
+                    settings_path = gr.Textbox("deforum_settings.txt", elem_id='deforum_settings_path', label="Settings File", info="settings file path can be relative to webui folder OR full - absolute")
                     #reuse_latest_settings_btn = gr.Button('Reuse Latest', elem_id='deforum_reuse_latest_settings_btn')#TODO
                 with gr.Row(variant='compact'):
                     save_settings_btn = gr.Button('Save Settings', elem_id='deforum_save_settings_btn')
@@ -276,6 +282,7 @@ def on_ui_tabs():
                     inputs=[dummy_component, dummy_component] + component_list,
                     outputs=[
                          deforum_gallery,
+                         components["resume_timestring"],
                          generation_info,
                          html_info,
                          html_log,
@@ -333,6 +340,7 @@ def on_ui_settings():
     shared.opts.add_option("deforum_ffmpeg_location", shared.OptionInfo(find_ffmpeg_binary(), "FFmpeg path/ location", section=section))
     shared.opts.add_option("deforum_ffmpeg_crf", shared.OptionInfo(17, "FFmpeg CRF value", gr.Slider, {"interactive": True, "minimum": 0, "maximum": 51}, section=section))
     shared.opts.add_option("deforum_ffmpeg_preset", shared.OptionInfo('slow', "FFmpeg Preset", gr.Dropdown, {"interactive": True, "choices": ['veryslow', 'slower', 'slow', 'medium', 'fast', 'faster', 'veryfast', 'superfast', 'ultrafast']}, section=section))
-
+    shared.opts.add_option("deforum_debug_mode_enabled", shared.OptionInfo(False, "Enable Dev mode - adds extra reporting in console", gr.Checkbox, {"interactive": True}, section=section))
+        
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)

@@ -5,25 +5,32 @@ import deforum_helpers.args as deforum_args
 from .args import mask_fill_choices, DeforumArgs, DeforumAnimArgs
 from .deprecation_utils import handle_deprecated_settings
 from .general_utils import get_deforum_version
+from modules.shared import opts
+import modules.shared as sh
 import logging
+
+DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
 def get_keys_to_exclude():
     return ["n_batch", "seed_enable_extras", "save_samples", "display_samples", "show_sample_per_step", "filename_format", "from_img2img_instead_of_link", "scale", "subseed", "subseed_strength", "C", "f", "init_latent", "init_sample", "init_c", "noise_mask", "seed_internal", "perlin_w", "perlin_h", "mp4_path", "image_path", "output_format","render_steps","path_name_modifier"]
-
-def load_args(args_dict, anim_args_dict, parseq_args_dict, loop_args_dict, controlnet_args_dict, video_args_dict, custom_settings_file, root, run_id):
+       
+def load_args(args_dict_main, args_dict, anim_args_dict, parseq_args_dict, loop_args_dict, controlnet_args_dict, video_args_dict, custom_settings_file, root, run_id):
     custom_settings_file = custom_settings_file[run_id]
     print(f"reading custom settings from {custom_settings_file.name}")
     if not os.path.isfile(custom_settings_file.name):
         print('Custom settings file does not exist. Using in-notebook settings.')
         return
     with open(custom_settings_file.name, "r") as f:
-        jdata = json.loads(f.read())
+        try:
+            jdata = json.loads(f.read())
+        except:
+            return False
         handle_deprecated_settings(jdata)
         root.animation_prompts = jdata.get("prompts", root.animation_prompts)
         if "animation_prompts_positive" in jdata:
-            root.animation_prompts_positive = jdata["animation_prompts_positive"]
+            args_dict_main['animation_prompts_positive'] = jdata["animation_prompts_positive"] # Update the args_dict_main
         if "animation_prompts_negative" in jdata:
-            root.animation_prompts_negative = jdata["animation_prompts_negative"]
+            args_dict_main['animation_prompts_negative'] = jdata["animation_prompts_negative"] # Update the args_dict_main
         keys_to_exclude = get_keys_to_exclude()
         for dicts in [args_dict, anim_args_dict, parseq_args_dict, loop_args_dict, video_args_dict]:
             for k, v in dicts.items():
@@ -34,6 +41,7 @@ def load_args(args_dict, anim_args_dict, parseq_args_dict, loop_args_dict, contr
                     else:
                         print(f"Key {k} doesn't exist in the custom settings data! Using default value of {v}")
         print(args_dict, anim_args_dict, parseq_args_dict, loop_args_dict)
+        return True
 
 def save_settings_from_animation_run(args, anim_args, parseq_args, loop_args, controlnet_args, video_args, root, full_out_file_path = None):
     if full_out_file_path:
@@ -48,10 +56,12 @@ def save_settings_from_animation_run(args, anim_args, parseq_args, loop_args, co
         s = {}
         for d in (args.__dict__, anim_args.__dict__, parseq_args.__dict__, loop_args.__dict__, controlnet_args.__dict__, video_args.__dict__):
             s.update({k: v for k, v in d.items() if k not in exclude_keys})
+        s["sd_model_name"] = sh.sd_model.sd_checkpoint_info.name
+        s["sd_model_hash"] = sh.sd_model.sd_checkpoint_info.hash
         s["deforum_git_commit_id"] = get_deforum_version()
         json.dump(s, f, ensure_ascii=False, indent=4)
 
-# In gradio gui settings save/ load funs:
+# In gradio gui settings save/ load funcs:
 def save_settings(*args, **kwargs):
     from deforum_helpers.args import pack_args, pack_anim_args, pack_parseq_args, pack_loop_args, pack_controlnet_args, pack_video_args
     settings_path = args[0].strip()
@@ -69,6 +79,8 @@ def save_settings(*args, **kwargs):
     combined = {**args_dict, **anim_args_dict, **parseq_dict, **loop_dict, **controlnet_dict, **video_args_dict}
     exclude_keys = get_keys_to_exclude() + ['controlnet_input_video_chosen_file', 'controlnet_input_video_mask_chosen_file']
     filtered_combined = {k: v for k, v in combined.items() if k not in exclude_keys}
+    filtered_combined["sd_model_name"] = sh.sd_model.sd_checkpoint_info.name
+    filtered_combined["sd_model_hash"] = sh.sd_model.sd_checkpoint_info.hash
     filtered_combined["deforum_git_commit_id"] = get_deforum_version()
     print(f"saving custom settings to {settings_path}")
     with open(settings_path, "w", encoding='utf-8') as f:

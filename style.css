@@ -46,10 +46,6 @@
 	padding: 1px; 
 }
 
-#tab_deforum_interface .gradio-column.svelte-vt1mxs.panel{
-	gap: 1px !important;
-}
-
 #add_soundtrack .svelte-1p9xokt {
 	padding: 2.25px;
 }
@@ -57,6 +53,11 @@
 #tab_deforum_interface .wrap.svelte-xwlu1w, #custom_setting_file {
 	height: 85px !important;
 	min-height: 85px !important;
+}
+
+#tab_deforum_interface .file-preview-holder {
+  overflow-y: auto;
+  max-height: 60px;
 }
 
 /* OLD rules THAT MIGHT NEED TO BE REVIVED AT SOME POINT: */
