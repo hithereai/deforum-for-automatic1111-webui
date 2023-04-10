@@ -78,4 +78,5 @@ param_dict = {
     "hybrid_flow_factor_schedule": {"backend": "hybrid_flow_factor_schedule_series", "user": "Hybrid Flow Factor Schedule", "print": "HybridFlowFactorSchedule"},
 }
 
-
+def get_user_values():
+    return [v["user"] for v in param_dict.values()]

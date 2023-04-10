@@ -36,6 +36,7 @@ import modules.shared as shared
 from modules.shared import opts, cmd_opts, state
 from modules.ui import create_output_panel, plaintext_to_html, wrap_gradio_call
 from types import SimpleNamespace
+from deforum_helpers.subtitle_handler import get_user_values
 
 DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
@@ -329,62 +330,8 @@ def on_ui_tabs():
         
     return [(deforum_interface, "Deforum", "deforum_interface")]
 
-
-param_dict = {
-    "angle": {"backend": "angle_series", "user": "Angle", "print": "Angle"},
-    "transform_center_x": {"backend": "transform_center_x_series", "user": "Transform Center X", "print": "Tr.C.X"},
-    "transform_center_y": {"backend": "transform_center_y_series", "user": "Transform Center Y", "print": "Tr.C.Y"},
-    "zoom": {"backend": "zoom_series", "user": "Zoom", "print": "Zoom"},
-    "translation_x": {"backend": "translation_x_series", "user": "Translation X", "print": "TrX"},
-    "translation_y": {"backend": "translation_y_series", "user": "Translation Y", "print": "TrY"},
-    "translation_z": {"backend": "translation_z_series", "user": "Translation Z", "print": "TrZ"},
-    "rotation_3d_x": {"backend": "rotation_3d_x_series", "user": "Rotation 3D X", "print": "RotX"},
-    "rotation_3d_y": {"backend": "rotation_3d_y_series", "user": "Rotation 3D Y", "print": "RotY"},
-    "rotation_3d_z": {"backend": "rotation_3d_z_series", "user": "Rotation 3D Z", "print": "RotZ"},
-    "perspective_flip_theta": {"backend": "perspective_flip_theta_series", "user": "Perspective Flip Theta", "print": "PerFlT"},
-    "perspective_flip_phi": {"backend": "perspective_flip_phi_series", "user": "Perspective Flip Phi", "print": "PerFlP"},
-    "perspective_flip_gamma": {"backend": "perspective_flip_gamma_series", "user": "Perspective Flip Gamma", "print": "PerFlG"},
-    "perspective_flip_fv": {"backend": "perspective_flip_fv_series", "user": "Perspective Flip FV", "print": "PerFlFV"},
-    "noise_schedule": {"backend": "noise_schedule_series", "user": "Noise Schedule", "print": "Noise"},
-    "strength_schedule": {"backend": "strength_schedule_series", "user": "Strength Schedule", "print": "StrSch"},
-    "contrast_schedule": {"backend": "contrast_schedule_series", "user": "Contrast Schedule", "print": "CtrstSch"},
-    "cfg_scale_schedule": {"backend": "cfg_scale_schedule_series", "user": "CFG Scale Schedule", "print": "CFGSch"},
-    "pix2pix_img_cfg_scale_schedule": {"backend": "pix2pix_img_cfg_scale_series", "user": "Pix2pix Img CFG Scale Schedule", "print": "P2PCfgSch"},
-    "subseed_schedule": {"backend": "subseed_schedule_series", "user": "Subseed Schedule", "print": "SubSSch"},
-    "subseed_strength_schedule": {"backend": "subseed_strength_schedule_series", "user": "Subseed Strength Schedule", "print": "SubSStrSch"},
-    "checkpoint_schedule": {"backend": "checkpoint_schedule_series", "user": "Checkpoint Schedule", "print": "CkptSch"},
-    "steps_schedule": {"backend": "steps_schedule_series", "user": "Steps Schedule", "print": "StepsSch"},
-    "seed_schedule": {"backend": "seed_schedule_series", "user": "Seed Schedule", "print": "SeedSch"},
-    "sampler_schedule": {"backend": "sampler_schedule_series", "user": "Sampler Schedule", "print": "SamplerSchedule"},
-    "clipskip_schedule": {"backend": "clipskip_schedule_series", "user": "Clipskip Schedule", "print": "ClipskipSchedule"},
-    "noise_multiplier_schedule": {"backend": "noise_multiplier_schedule_series", "user": "Noise Multiplier Schedule", "print": "NoiseMultiplierSchedule"},
-    "mask_schedule": {"backend": "mask_schedule_series", "user": "Mask Schedule", "print": "MaskSchedule"},
-    "noise_mask_schedule": {"backend": "noise_mask_schedule_series", "user": "Noise Mask Schedule", "print": "NoiseMaskSchedule"},
-    "kernel_schedule": {"backend": "kernel_schedule_series", "user": "Kernel Schedule", "print": "KernelSchedule"},
-    "sigma_schedule": {"backend": "sigma_schedule_series", "user": "Sigma Schedule", "print": "SigmaSchedule"},
-    "amount_schedule": {"backend": "amount_schedule_series", "user": "Amount Schedule", "print": "AmountSchedule"},
-    "threshold_schedule": {"backend": "threshold_schedule_series", "user": "Threshold Schedule", "print": "ThresholdSchedule"},
-    "aspect_ratio_schedule": {"backend": "aspect_ratio_series", "user": "Aspect Ratio Schedule", "print": "AspectRatioSchedule"},
-    "fov_schedule": {"backend": "fov_series", "user": "Field of View Schedule", "print": "FieldOfViewSchedule"},
-    "near_schedule": {"backend": "near_series", "user": "Near Schedule", "print": "NearSchedule"},
-    "cadence_flow_factor_schedule": {"backend": "cadence_flow_factor_schedule_series", "user": "Cadence Flow Factor Schedule", "print": "CadenceFlowFactorSchedule"},
-    "redo_flow_factor_schedule": {"backend": "redo_flow_factor_schedule_series", "user": "Redo Flow Factor Schedule", "print": "RedoFlowFactorSchedule"},
-    "far_schedule": {"backend": "far_series", "user": "Far Schedule", "print": "FarSchedule"},
-    "hybrid_comp_alpha_schedule": {"backend": "hybrid_comp_alpha_schedule_series", "user": "Hybrid Comp Alpha Schedule", "print": "HybridCompAlphaSchedule"},
-    "hybrid_comp_mask_blend_alpha_schedule": {"backend": "hybrid_comp_mask_blend_alpha_schedule_series", "user": "Hybrid Comp Mask Blend Alpha Schedule", "print": "HybridCompMaskBlendAlphaSchedule"},
-    "hybrid_comp_mask_contrast_schedule": {"backend": "hybrid_comp_mask_contrast_schedule_series", "user": "Hybrid Comp Mask Contrast Schedule", "print": "HybridCompMaskContrastSchedule"},
-    "hybrid_comp_mask_auto_contrast_cutoff_high_schedule": {"backend": "hybrid_comp_mask_auto_contrast_cutoff_high_schedule_series", "user": "Hybrid Comp Mask Auto Contrast Cutoff High Schedule", "print": "HybridCompMaskAutoContrastCutoffHighSchedule"},
-    "hybrid_comp_mask_auto_contrast_cutoff_low_schedule": {"backend": "hybrid_comp_mask_auto_contrast_cutoff_low_schedule_series", "user": "Hybrid Comp Mask Auto Contrast Cutoff Low Schedule", "print": "HybridCompMaskAutoContrastCutoffLowSchedule"},
-    "hybrid_flow_factor_schedule": {"backend": "hybrid_flow_factor_schedule_series", "user": "Hybrid Flow Factor Schedule", "print": "HybridFlowFactorSchedule"},
-}
-
-
-
 def on_ui_settings():
-    def get_user_values(param_dict):
-        return [v["user"] for v in param_dict.values()]
-    user_values = get_user_values(param_dict)
-    choice_list = [x for x in user_values]
+    srt_ui_params = get_user_values()
     section = ('deforum', "Deforum")
     shared.opts.add_option("deforum_keep_3d_models_in_vram", shared.OptionInfo(False, "Keep 3D models in VRAM between runs", gr.Checkbox, {"interactive": True, "visible": True if not (cmd_opts.lowvram or cmd_opts.medvram) else False}, section=section))
     shared.opts.add_option("deforum_enable_persistent_settings", shared.OptionInfo(False, "Keep settings persistent upon relaunch of webui", gr.Checkbox, {"interactive": True}, section=section))
@@ -394,7 +341,7 @@ def on_ui_settings():
     shared.opts.add_option("deforum_ffmpeg_preset", shared.OptionInfo('slow', "FFmpeg Preset", gr.Dropdown, {"interactive": True, "choices": ['veryslow', 'slower', 'slow', 'medium', 'fast', 'faster', 'veryfast', 'superfast', 'ultrafast']}, section=section))
     shared.opts.add_option("deforum_debug_mode_enabled", shared.OptionInfo(False, "Enable Dev mode - adds extra reporting in console", gr.Checkbox, {"interactive": True}, section=section))
     shared.opts.add_option("deforum_save_gen_info_as_srt", shared.OptionInfo(False, "Save an .srt (subtitles) file with the generation info along with each animation", gr.Checkbox, {"interactive": True}, section=section))  
-    shared.opts.add_option("deforum_save_gen_info_as_srt_params", shared.OptionInfo(['Noise Schedule'], "Choose which animation params are to be saved to the .srt file", gr.CheckboxGroup, {"interactive": True, "choices": choice_list, "visible": True}, section=section))  
+    shared.opts.add_option("deforum_save_gen_info_as_srt_params", shared.OptionInfo(['Noise Schedule'], "Choose which animation params are to be saved to the .srt file", gr.CheckboxGroup, {"interactive": True, "choices": srt_ui_params}, section=section))  
         
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)
