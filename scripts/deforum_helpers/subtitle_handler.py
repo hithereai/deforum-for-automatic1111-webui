@@ -1,34 +1,5 @@
 from decimal import Decimal, getcontext
-
-def time_to_srt_format(seconds):
-    hours, remainder = divmod(seconds, 3600)
-    minutes, remainder = divmod(remainder, 60)
-    seconds, milliseconds = divmod(remainder, 1)
-    return f"{hours:02}:{minutes:02}:{int(seconds):02},{int(milliseconds * 1000):03}"
-
-def init_srt_file(filename, fps, precision=20):
-    with open(filename, "w") as f:
-        pass
-    getcontext().prec = precision
-    frame_duration = Decimal(1) / Decimal(fps)
-    return frame_duration
-
-def write_frame_subtitle(filename, frame_number, frame_duration, text):
-    frame_start_time = Decimal(frame_number) * frame_duration
-    frame_end_time = (Decimal(frame_number) + Decimal(1)) * frame_duration
-
-    with open(filename, "a") as f:
-        f.write(f"{frame_number + 1}\n")
-        f.write(f"{time_to_srt_format(frame_start_time)} --> {time_to_srt_format(frame_end_time)}\n")
-        f.write(f"{text}\n\n")
-        
-def format_animation_params(keys, frame_idx):
-    params_string = ""
-    for key in keys.__dict__:
-        if key.endswith("_series"):
-            params_string += f"{key.replace('_series','').capitalize()}: {keys.__dict__[key][frame_idx]}; "
-    params_string = params_string.rstrip("; ")  # Remove trailing semicolon and whitespace
-    return params_string
+from modules.shared import opts
 
 param_dict = {
     "angle": {"backend": "angle_series", "user": "Angle", "print": "Angle"},
@@ -77,6 +48,41 @@ param_dict = {
     "hybrid_comp_mask_auto_contrast_cutoff_low_schedule": {"backend": "hybrid_comp_mask_auto_contrast_cutoff_low_schedule_series", "user": "Hybrid Comp Mask Auto Contrast Cutoff Low Schedule", "print": "HybridCompMaskAutoContrastCutoffLowSchedule"},
     "hybrid_flow_factor_schedule": {"backend": "hybrid_flow_factor_schedule_series", "user": "Hybrid Flow Factor Schedule", "print": "HybridFlowFactorSchedule"},
 }
+
+def time_to_srt_format(seconds):
+    hours, remainder = divmod(seconds, 3600)
+    minutes, remainder = divmod(remainder, 60)
+    seconds, milliseconds = divmod(remainder, 1)
+    return f"{hours:02}:{minutes:02}:{int(seconds):02},{int(milliseconds * 1000):03}"
+
+def init_srt_file(filename, fps, precision=20):
+    with open(filename, "w") as f:
+        pass
+    getcontext().prec = precision
+    frame_duration = Decimal(1) / Decimal(fps)
+    return frame_duration
+
+def write_frame_subtitle(filename, frame_number, frame_duration, text):
+    frame_start_time = Decimal(frame_number) * frame_duration
+    frame_end_time = (Decimal(frame_number) + Decimal(1)) * frame_duration
+
+    with open(filename, "a") as f:
+        f.write(f"{frame_number + 1}\n")
+        f.write(f"{time_to_srt_format(frame_start_time)} --> {time_to_srt_format(frame_end_time)}\n")
+        f.write(f"{text}\n\n")
+
+def format_animation_params(keys, frame_idx):
+    params_to_print = opts.data.get("deforum_save_gen_info_as_srt_params", ['Seed'])
+
+    params_string = ""
+    for key, value in param_dict.items():
+        if value['user'] in params_to_print:
+            backend_key = value['backend']
+            print_key = value['print']
+            params_string += f"{print_key}: {keys.__dict__[backend_key][frame_idx]}; "
+
+    params_string = params_string.rstrip("; ")  # Remove trailing semicolon and whitespace
+    return params_string
 
 def get_user_values():
     return [v["user"] for v in param_dict.values()]
