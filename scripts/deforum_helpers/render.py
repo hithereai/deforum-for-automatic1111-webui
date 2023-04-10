@@ -263,7 +263,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             params_string = format_animation_params(keys, frame_idx)
             write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f"F#: {frame_idx}; Seed: {args.seed}; {params_string}")
             params_string = None
-            # write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f"F#: {frame_idx}; Seed: {args.seed}; StrSch: {keys.strength_schedule_series[frame_idx]}; CFG: {keys.cfg_scale_schedule_series[frame_idx]}; Steps: {keys.steps_schedule_series[frame_idx]}; Noise: {keys.noise_schedule_series[frame_idx]}; Zoom: {keys.zoom_series[frame_idx]};")
             
         # emit in-between frames
         if turbo_steps > 1:
@@ -283,7 +282,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                             turbo_next_image = image_transform_optical_flow(turbo_next_image, -cadence_flow, 1)
 
                 if opts.data.get("deforum_save_gen_info_as_srt"):
-                    write_frame_subtitle(srt_filename, tween_frame_idx, srt_frame_duration, f" F#: {tween_frame_idx}; Seed: {args.seed}; StrSch: {keys.strength_schedule_series[tween_frame_idx]}; CFG: {keys.cfg_scale_schedule_series[tween_frame_idx]}; Steps: {keys.steps_schedule_series[tween_frame_idx]}; Noise: {keys.noise_schedule_series[tween_frame_idx]}")
+                    params_string = format_animation_params(keys, tween_frame_idx)
+                    write_frame_subtitle(srt_filename, tween_frame_idx, srt_frame_duration, f"F#: {tween_frame_idx}; Seed: {args.seed}; {params_string}")
+                    params_string = None
 
                 print(f"Creating in-between {'' if cadence_flow is None else anim_args.optical_flow_cadence + ' optical flow '}cadence frame: {tween_frame_idx}; tween:{tween:0.2f};")
 
