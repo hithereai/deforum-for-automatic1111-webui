@@ -30,7 +30,7 @@ from .save_images import save_image
 from .composable_masks import compose_mask_with_check
 from .settings import save_settings_from_animation_run
 from .deforum_controlnet import unpack_controlnet_vids, is_controlnet_enabled
-from .subtitle_handler import init_srt_file, write_frame_subtitle
+from .subtitle_handler import init_srt_file, write_frame_subtitle, format_animation_params
 from .resume import get_resume_vars
 from .masks import do_overlay_mask
 from modules.shared import opts, cmd_opts, state, sd_model
@@ -40,7 +40,7 @@ from modules import lowvram, devices, sd_hijack
 
 def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
 
-    if opts.data.get("deforum_save_gen_info_as_srt"):
+    if opts.data.get("deforum_save_gen_info_as_srt"): # create .srt file and set timeframe mechanism using FPS
         srt_filename = os.path.join(args.outdir, f"{args.timestring}.srt")
         srt_frame_duration = init_srt_file(srt_filename, video_args.fps)
 
@@ -260,7 +260,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             depth_model.to(root.device)
         
         if turbo_steps == 1 and opts.data.get("deforum_save_gen_info_as_srt"):
-            write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f"F#: {frame_idx}; Seed: {args.seed}; StrSch: {keys.strength_schedule_series[frame_idx]}; CFG: {keys.cfg_scale_schedule_series[frame_idx]}; Steps: {keys.steps_schedule_series[frame_idx]}; Noise: {keys.noise_schedule_series[frame_idx]}")
+            params_string = format_animation_params(keys, frame_idx)
+            write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f"F#: {frame_idx}; Seed: {args.seed}; {params_string}")
+            params_string = None
+            # write_frame_subtitle(srt_filename, frame_idx, srt_frame_duration, f"F#: {frame_idx}; Seed: {args.seed}; StrSch: {keys.strength_schedule_series[frame_idx]}; CFG: {keys.cfg_scale_schedule_series[frame_idx]}; Steps: {keys.steps_schedule_series[frame_idx]}; Noise: {keys.noise_schedule_series[frame_idx]}; Zoom: {keys.zoom_series[frame_idx]};")
             
         # emit in-between frames
         if turbo_steps > 1:
