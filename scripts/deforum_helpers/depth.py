@@ -116,7 +116,7 @@ class MidasModel:
                                     torch.Size([h, w]),
                                     interpolation=TF.InterpolationMode.BICUBIC).numpy()
             except:
-                print("  exception encountered, falling back to pure MiDaS")
+                print("exception encountered, falling back to pure MiDaS")
                 use_adabins = False
             torch.cuda.empty_cache()
 
@@ -155,6 +155,7 @@ class MidasModel:
 
     def delete_model(self):
         if self.use_zoe_depth:
+            self.zoe_depth.delete()
             del self.zoe_depth
         else:
             del self.midas_model
