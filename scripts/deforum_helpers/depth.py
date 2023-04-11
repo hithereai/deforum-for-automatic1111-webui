@@ -40,33 +40,34 @@ class MidasModel:
         self.use_zoe_depth = use_zoe_depth
         if self.use_zoe_depth:
             self.zoe_depth = ZoeDepth()
+        
+        if not self.use_zoe_depth:
+            model_file = os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')
+            if not os.path.exists(model_file):
+                from basicsr.utils.download_util import load_file_from_url
+                load_file_from_url(r"https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", models_path)
+                if checksum(model_file) != "fcc4829e65d00eeed0a38e9001770676535d2e95c8a16965223aba094936e1316d569563552a852d471f310f83f597e8a238987a26a950d667815e08adaebc06":
+                    raise Exception(r"Error while downloading dpt_large-midas-2f21e586.pt. Please download from here: https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt and place in: " + models_path)
 
-        model_file = os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')
-        if not os.path.exists(model_file):
-            from basicsr.utils.download_util import load_file_from_url
-            load_file_from_url(r"https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", models_path)
-            if checksum(model_file) != "fcc4829e65d00eeed0a38e9001770676535d2e95c8a16965223aba094936e1316d569563552a852d471f310f83f597e8a238987a26a950d667815e08adaebc06":
-                raise Exception(r"Error while downloading dpt_large-midas-2f21e586.pt. Please download from here: https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt and place in: " + models_path)
+            if not self.keep_in_vram or not hasattr(self, 'midas_model'):
+                self.midas_model = DPTDepthModel(
+                    path=model_file,
+                    backbone="vitl16_384",
+                    non_negative=True,
+                )
 
-        if not self.keep_in_vram or not hasattr(self, 'midas_model'):
-            self.midas_model = DPTDepthModel(
-                path=model_file,
-                backbone="vitl16_384",
-                non_negative=True,
-            )
+                normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 
-            normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+                self.midas_transform = T.Compose([
+                    Resize(384, 384, resize_target=None, keep_aspect_ratio=True, ensure_multiple_of=32,
+                           resize_method="minimal", image_interpolation_method=cv2.INTER_CUBIC),
+                    normalization,
+                    PrepareForNet()
+                ])
 
-            self.midas_transform = T.Compose([
-                Resize(384, 384, resize_target=None, keep_aspect_ratio=True, ensure_multiple_of=32,
-                       resize_method="minimal", image_interpolation_method=cv2.INTER_CUBIC),
-                normalization,
-                PrepareForNet()
-            ])
-
-        self.midas_model.eval().to(self.device, memory_format=torch.channels_last if self.device == torch.device("cuda") else None)
-        if half_precision:
-            self.midas_model = self.midas_model.half()
+            self.midas_model.eval().to(self.device, memory_format=torch.channels_last if self.device == torch.device("cuda") else None)
+            if half_precision:
+                self.midas_model = self.midas_model.half()
 
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
         img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
