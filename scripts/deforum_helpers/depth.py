@@ -68,58 +68,6 @@ class MidasModel:
         if half_precision:
             self.midas_model = self.midas_model.half()
 
-    # def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
-        # w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
-
-        # img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
-        # use_adabins = midas_weight < 1.0 and self.adabins_helper is not None
-
-        # if use_adabins:
-            # MAX_ADABINS_AREA = 500000
-            # MIN_ADABINS_AREA = 448 * 448
-            # image_pil_area = w * h
-            # scale = math.sqrt(MIN_ADABINS_AREA) / math.sqrt(image_pil_area)
-            # depth_input = img_pil.resize((int(w * scale), int(h * scale)), Image.LANCZOS if image_pil_area > MAX_ADABINS_AREA else Image.BICUBIC)
-            # try:
-                # with torch.no_grad():
-                    # _, adabins_depth = self.adabins_helper.predict_pil(depth_input)
-                # adabins_depth = adabins_depth.squeeze().cpu().numpy()
-                # if image_pil_area != MAX_ADABINS_AREA:
-                    # adabins_depth = TF.resize(torch.from_numpy(adabins_depth),
-                                      # torch.Size([h, w]),
-                                      # interpolation=TF.InterpolationMode.BICUBIC).numpy()
-            # except:
-                # print("  exception encountered, falling back to pure MiDaS")
-                # use_adabins = False
-            # torch.cuda.empty_cache()
-        # if self.midas_model is not None:
-            # img_midas = prev_img_cv2.astype(np.float32) / 255.0
-            # img_midas_input = self.midas_transform({"image": img_midas})["image"]
-            # sample = torch.from_numpy(img_midas_input).float().to(self.device).unsqueeze(0)
-
-            # if self.device.type == "cuda" or self.device.type == "mps":
-                # sample = sample.to(memory_format=torch.channels_last)
-                # if half_precision:
-                    # sample = sample.half()
-
-            # with torch.no_grad():
-                # midas_depth = self.midas_model.forward(sample)
-            # midas_depth = torch.nn.functional.interpolate(
-                # midas_depth.unsqueeze(1),
-                # size=img_midas.shape[:2],
-                # mode="bicubic",
-                # align_corners=False,
-            # ).squeeze().cpu().numpy()
-
-            # torch.cuda.empty_cache()
-            # midas_depth = np.subtract(50.0, midas_depth) / 19.0
-            # depth_map = (midas_depth * midas_weight + adabins_depth * (1.0 - midas_weight)) if use_adabins else midas_depth
-            # depth_tensor = torch.from_numpy(np.expand_dims(depth_map, axis=0)).squeeze().to(self.device)
-        # else:
-            # depth_tensor = torch.ones((h, w), device=self.device)
-
-        # return depth_tensor
-
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
         img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
 
@@ -192,7 +140,10 @@ class MidasModel:
         return Image.fromarray(temp.astype(np.uint8))
 
     def save(self, filename: str, depth: torch.Tensor):
-        self.to_image(depth).save(filename)
+        if self.use_zoe_depth:
+            self.zoe_depth.save_colored_depth(depth, filename)
+        else:
+            self.to_image(depth).save(filename)
 
     def to(self, device):
         self.device = device
