@@ -113,8 +113,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         keep_in_vram = opts.data.get("deforum_keep_3d_models_in_vram")
         
         device = ('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
-        # depth_model = MidasModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram)
-        depth_model = ZoeDepth()
+        depth_model = MidasModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram, use_zoe_depth=True)
+        # depth_model = ZoeDepth()
         
         
         if anim_args.midas_weight < 1.0:
@@ -294,8 +294,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
                 if depth_model is not None:
                     assert(turbo_next_image is not None)
-                    # depth = depth_model.predict(turbo_next_image, anim_args.midas_weight, root.half_precision)
-                    depth = depth_model.predict(turbo_next_image)
+                    depth = depth_model.predict(turbo_next_image, anim_args.midas_weight, root.half_precision)
+                    # depth = depth_model.predict(turbo_next_image)
                     
                 if advance_prev:
                     turbo_prev_image, _ = anim_frame_warp(turbo_prev_image, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device, half_precision=root.half_precision)
@@ -364,8 +364,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 filename = f"{args.timestring}_{tween_frame_idx:09}.png"
                 cv2.imwrite(os.path.join(args.outdir, filename), img)
                 if anim_args.save_depth_maps:
-                    # depth_model.save(os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"), depth)
-                    depth_model.save_colored_depth(depth, os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"))
+                    depth_model.save(os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"), depth)
+                    # depth_model.save_colored_depth(depth, os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"))
                     
             if turbo_next_image is not None:
                 prev_img = turbo_next_image
