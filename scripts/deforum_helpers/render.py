@@ -117,7 +117,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         depth_model = ZoeDepth()
         
         
-        if anim_args.midas_weight < 1.0:
+        if anim_args.midas_weight < 1.0
+            print("Engaging AdaBins, as MiDaS < 1")
             adabins_model = AdaBinsModel(root.models_path, keep_in_vram=keep_in_vram)
             
         # depth-based hybrid composite mask requires saved depth maps
