@@ -35,6 +35,7 @@ from .resume import get_resume_vars
 from .masks import do_overlay_mask
 from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
+from .ZoeDepth import ZoeDepth
 
 # DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
@@ -112,7 +113,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         keep_in_vram = opts.data.get("deforum_keep_3d_models_in_vram")
         
         device = ('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
-        depth_model = MidasModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram)
+        # depth_model = MidasModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram)
+        depth_model = ZoeDepth()
+        
         
         if anim_args.midas_weight < 1.0:
             adabins_model = AdaBinsModel(root.models_path, keep_in_vram=keep_in_vram)
@@ -290,7 +293,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
                 if depth_model is not None:
                     assert(turbo_next_image is not None)
-                    depth = depth_model.predict(turbo_next_image, anim_args.midas_weight, root.half_precision)
+                    # depth = depth_model.predict(turbo_next_image, anim_args.midas_weight, root.half_precision)
+                    depth = depth_model.predict(turbo_next_image)
                     
                 if advance_prev:
                     turbo_prev_image, _ = anim_frame_warp(turbo_prev_image, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device, half_precision=root.half_precision)
