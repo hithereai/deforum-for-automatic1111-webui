@@ -1,5 +1,6 @@
 import torch
 from PIL import Image
+from zoedepth.utils.misc import colorize 
 
 class ZoeDepth:
     def __init__(self):
@@ -26,9 +27,11 @@ class ZoeDepth:
         depth.save(filepath, format='PNG', mode='I;16')
 
     def colorize_depth(self, depth):
-        colored = self.zoe.colorize(depth)
+        # colored = self.zoe.colorize(depth)
+        colored = colorize(depth)
         return colored
 
     def save_colored_depth(self, depth, filepath):
-        colored = self.zoe.colorize(depth)
+        # colored = self.zoe.colorize(depth)
+        colored = colorize(depth)
         Image.fromarray(colored).save(filepath)
