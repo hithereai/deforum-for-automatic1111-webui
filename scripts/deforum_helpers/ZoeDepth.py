@@ -13,25 +13,13 @@ class ZoeDepth:
         depth_tensor = self.zoe.infer_pil(image, output_type="tensor")
         return depth_tensor
 
-    def predict_from_local_file(self, filepath):
-        image = Image.open(filepath).convert("RGB")
-        depth_tensor = self.zoe.infer_pil(image, output_type="tensor")
-        return depth_tensor
-
-    def predict_from_url(self, url):
-        image = Image.open(url).convert("RGB")
-        depth_tensor = self.zoe.infer_pil(image, output_type="tensor")
-        return depth_tensor
-
     def save_raw_depth(self, depth, filepath):
         depth.save(filepath, format='PNG', mode='I;16')
 
     def colorize_depth(self, depth):
-        # colored = self.zoe.colorize(depth)
         colored = colorize(depth)
         return colored
 
     def save_colored_depth(self, depth, filepath):
-        # colored = self.zoe.colorize(depth)
         colored = colorize(depth)
         Image.fromarray(colored).save(filepath)
