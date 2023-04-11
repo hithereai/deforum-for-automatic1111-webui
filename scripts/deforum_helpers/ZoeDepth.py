@@ -4,9 +4,9 @@ from PIL import Image
 class ZoeDepth:
     def __init__(self):
         repo = "isl-org/ZoeDepth"
-        self.model_zoe_n = torch.hub.load(repo, "ZoeD_N", pretrained=True)
+        self.model_zoe = torch.hub.load(repo, "ZoeD_NK", pretrained=True)
         self.DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-        self.zoe = self.model_zoe_n.to(self.DEVICE)
+        self.zoe = self.model_zoe.to(self.DEVICE)
         
     def predict(self, image):
         depth_tensor = self.zoe.infer_pil(image, output_type="tensor")
