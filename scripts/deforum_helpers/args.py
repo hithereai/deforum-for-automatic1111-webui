@@ -137,7 +137,7 @@ def DeforumAnimArgs():
     hybrid_use_first_frame_as_init_image = True 
     hybrid_motion = "None" #['None','Optical Flow','Perspective','Affine']
     hybrid_motion_use_prev_img = False 
-    hybrid_flow_method = "DIS Fine" #['DIS Fine', 'DIS Medium', 'Farneback']
+    hybrid_flow_method = "DIS Fine" #['RAFT', 'DIS Fine', 'DIS Medium', 'Farneback']
     hybrid_composite = 'None' #['None', 'Normal', 'Before Motion', 'After Generation'] 
     hybrid_use_init_image = False 
     hybrid_comp_mask_type = "None" #['None', 'Depth', 'Video Depth', 'Blend', 'Difference']
@@ -744,7 +744,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         with gr.Column(variant='compact'):
                             with gr.Row(variant='compact'):
                                 with gr.Column(scale=1):
-                                    hybrid_flow_method = gr.Radio(['DIS Fine', 'DIS Medium', 'Farneback'], label="Flow method", value=da.hybrid_flow_method, elem_id="hybrid_flow_method", visible=False)
+                                    hybrid_flow_method = gr.Radio(['RAFT', 'DIS Fine', 'DIS Medium', 'Farneback'], label="Flow method", value=da.hybrid_flow_method, elem_id="hybrid_flow_method", visible=False)
                     with gr.Row(variant='compact') as hybrid_flow_row:
                         hybrid_comp_mask_type = gr.Radio(['None', 'Depth', 'Video Depth', 'Blend', 'Difference'], label="Comp mask type", value=da.hybrid_comp_mask_type, elem_id="hybrid_comp_mask_type", visible=False)
                     with gr.Row(visible=False, variant='compact') as hybrid_comp_mask_row:

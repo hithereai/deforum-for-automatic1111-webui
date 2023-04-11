@@ -4,6 +4,7 @@ import pathlib
 import numpy as np
 import random
 import PIL
+import torch
 from PIL import Image, ImageChops, ImageOps, ImageEnhance
 from .video_audio_utilities import vid2frames, get_quick_vid_info, get_frame_name, get_next_frame
 from .human_masking import video2humanmasks
@@ -164,16 +165,16 @@ def get_matrix_for_hybrid_motion_prev(frame_idx, dimensions, inputfiles, prev_im
         print(f"Calculating {hybrid_motion} RANSAC matrix for frames {frame_idx} to {frame_idx+1}")
         return matrix
 
-def get_flow_for_hybrid_motion(frame_idx, dimensions, inputfiles, hybrid_frame_path, prev_flow, method, do_flow_visualization=False):
+def get_flow_for_hybrid_motion(frame_idx, dimensions, inputfiles, hybrid_frame_path, prev_flow, method, raft_model=None, do_flow_visualization=False):
     print(f"Calculating {method} optical flow for frames {frame_idx} to {frame_idx+1}")
     i1 = get_resized_image_from_filename(str(inputfiles[frame_idx]), dimensions)
     i2 = get_resized_image_from_filename(str(inputfiles[frame_idx+1]), dimensions)
-    flow = get_flow_from_images(i1, i2, method, prev_flow)
+    flow = get_flow_from_images(i1, i2, method, prev_flow, raft_model)
     if do_flow_visualization:
         save_flow_visualization(frame_idx, dimensions, flow, inputfiles, hybrid_frame_path)
     return flow
 
-def get_flow_for_hybrid_motion_prev(frame_idx, dimensions, inputfiles, hybrid_frame_path, prev_flow, prev_img, method, do_flow_visualization=False):
+def get_flow_for_hybrid_motion_prev(frame_idx, dimensions, inputfiles, hybrid_frame_path, prev_flow, prev_img, method, raft_model=None, do_flow_visualization=False):
     print(f"Calculating {method} optical flow for frames {frame_idx} to {frame_idx+1}")
     # first handle invalid images from cadence by returning default matrix
     height, width = prev_img.shape[:2]   
@@ -182,7 +183,7 @@ def get_flow_for_hybrid_motion_prev(frame_idx, dimensions, inputfiles, hybrid_fr
     else:
         i1 = prev_img.astype(np.uint8)
         i2 = get_resized_image_from_filename(str(inputfiles[frame_idx]), dimensions)
-        flow = get_flow_from_images(i1, i2, method, prev_flow)
+        flow = get_flow_from_images(i1, i2, method, prev_flow, raft_model)
     if do_flow_visualization:
         save_flow_visualization(frame_idx, dimensions, flow, inputfiles, hybrid_frame_path)
     return flow
@@ -261,9 +262,13 @@ def get_transformation_matrix_from_images(img1, img2, hybrid_motion, max_corners
         transformation_rigid_matrix, rigid_mask = cv2.estimateAffinePartial2D(prev_pts, curr_pts)
         return transformation_rigid_matrix
 
-def get_flow_from_images(i1, i2, method, prev_flow=None):
+def get_flow_from_images(i1, i2, method, prev_flow=None, raft_model=None):
     # Unused presets are included for this function's use in other applications (or real-time applications).
-    if method =="DIS Medium":
+    if method == "RAFT":
+        if raft_model is None:
+            raise ValueError("RAFT Model instance must be provided for method 'RAFT'")
+        r = get_flow_from_images_RAFT(i1, i2, raft_model)
+    elif method =="DIS Medium":
         r = get_flow_from_images_DIS(i1, i2, 'medium', prev_flow)
     elif method =="DIS Fast": # Unused
         r = get_flow_from_images_DIS(i1, i2, 'fast', prev_flow)
@@ -283,6 +288,58 @@ def get_flow_from_images(i1, i2, method, prev_flow=None):
         r = get_flow_from_images_Farneback(i1, i2, prev_flow)
     return r
     # return detect_scene_change_abs(r)
+
+# def get_flow_from_images_RAFT(i1, i2, raft_model):
+#     i1 = cv2.cvtColor(i1, cv2.COLOR_BGR2RGB)
+#     i2 = cv2.cvtColor(i2, cv2.COLOR_BGR2RGB)
+
+#     i1_tensor = torch.from_numpy(i1).permute(2, 0, 1).unsqueeze(0).float()
+#     i2_tensor = torch.from_numpy(i2).permute(2, 0, 1).unsqueeze(0).float()
+
+#     predicted_flows = raft_model.predict_flow(i1_tensor, i2_tensor)
+#     predicted_flows_numpy = predicted_flows[0].permute(1, 2, 0).cpu().detach().numpy()
+
+#     return predicted_flows_numpy
+
+# def get_flow_from_images_RAFT(i1, i2, raft_model):
+#     i1 = cv2.cvtColor(i1, cv2.COLOR_BGR2RGB)
+#     i2 = cv2.cvtColor(i2, cv2.COLOR_BGR2RGB)
+
+#     i1_tensor = torch.from_numpy(i1).permute(2, 0, 1).unsqueeze(0).float()
+#     i2_tensor = torch.from_numpy(i2).permute(2, 0, 1).unsqueeze(0).float()
+
+#     predicted_flows = raft_model.predict_flow(i1_tensor, i2_tensor)
+#     predicted_flows_numpy = predicted_flows[0].permute(1, 2, 0).cpu().detach().numpy()
+
+#     return predicted_flows_numpy
+
+def get_flow_from_images_RAFT(i1, i2, raft_model):
+    i1 = cv2.cvtColor(i1, cv2.COLOR_BGR2RGB)
+    i2 = cv2.cvtColor(i2, cv2.COLOR_BGR2RGB)
+
+    i1_tensor = torch.from_numpy(i1).permute(2, 0, 1).unsqueeze(0).float()
+    i2_tensor = torch.from_numpy(i2).permute(2, 0, 1).unsqueeze(0).float()
+
+    predicted_flows = raft_model.predict_flow(i1_tensor, i2_tensor)
+    predicted_flows_numpy = predicted_flows[0].permute(1, 2, 0).cpu().detach().numpy()
+
+    return raft_to_opencv(predicted_flows_numpy)
+
+def raft_to_opencv(flow):
+    u = flow[:, :, 0]
+    v = flow[:, :, 1]
+    
+    # OpenCV uses -1 to 1 range for flow
+    u = u / 512.0
+    v = v / 512.0
+    
+    # OpenCV assumes W,H,2 shape for flow
+    flow_opencv = np.dstack((u, v))
+    
+    # OpenCV uses 0-based flow, RAFT uses 1-based flow 
+    flow_opencv -= 1
+    
+    return flow_opencv
 
 def get_flow_from_images_DIS(i1, i2, preset, prev_flow):
     # DIS PRESETS CHART KEY: finest scale, grad desc its, patch size
