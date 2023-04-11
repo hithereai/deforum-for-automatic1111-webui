@@ -154,9 +154,13 @@ class MidasModel:
         torch.cuda.empty_cache()
 
     def delete_model(self):
-        del self.midas_model
+        if self.use_zoe_depth:
+            del self.zoe_depth
+        else:
+            del self.midas_model
+        gc.collect()
         torch.cuda.empty_cache()
-        
+        devices.torch_gc()
         
 class AdaBinsModel:
     _instance = None
