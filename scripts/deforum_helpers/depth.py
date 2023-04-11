@@ -23,14 +23,14 @@ class MidasModel:
 
     def __new__(cls, *args, **kwargs):
         keep_in_vram = kwargs.get('keep_in_vram', False)
-        if not cls._instance:
+        if cls._instance is None or (not keep_in_vram and not hasattr(cls._instance, 'midas_model')):
             cls._instance = super().__new__(cls)
             cls._instance._initialize(*args, **kwargs)
-        elif not keep_in_vram or not hasattr(cls._instance, 'midas_model'):
+        elif cls._instance.should_delete and keep_in_vram:
             cls._instance._initialize(*args, **kwargs)
-        
+        cls._instance.should_delete = not keep_in_vram
         return cls._instance
-
+        
     def _initialize(self, models_path, device, half_precision=True, keep_in_vram=False, use_zoe_depth=False):
         self.keep_in_vram = keep_in_vram
         self.adabins_helper = None
