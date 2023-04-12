@@ -24,26 +24,30 @@ class MidasModel:
     def __new__(cls, *args, **kwargs):
         keep_in_vram = kwargs.get('keep_in_vram', False)
         use_zoe_depth = kwargs.get('use_zoe_depth', False)
+        Width = kwargs.get('Width', 512)
+        Height = kwargs.get('Height', 512)
         model_switched = cls._instance and cls._instance.use_zoe_depth != use_zoe_depth
 
         if cls._instance is None or (not keep_in_vram and not hasattr(cls._instance, 'midas_model')) or model_switched:
             cls._instance = super().__new__(cls)
-            cls._instance._initialize(*args, **kwargs)
+            cls._instance._initialize(models_path=args[0], device=args[1], half_precision=True, keep_in_vram=keep_in_vram, use_zoe_depth=use_zoe_depth, Width=Width, Height=Height)
         elif cls._instance.should_delete and keep_in_vram:
-            cls._instance._initialize(*args, **kwargs)
+            cls._instance._initialize(models_path=args[0], device=args[1], half_precision=True, keep_in_vram=keep_in_vram, use_zoe_depth=use_zoe_depth, Width=Width, Height=Height)
         cls._instance.should_delete = not keep_in_vram
         return cls._instance
 
-    def _initialize(self, models_path, device, half_precision=True, keep_in_vram=False, use_zoe_depth=False):
+    def _initialize(self, models_path, device, half_precision=True, keep_in_vram=False, use_zoe_depth=False, Width=512, Height=512):
         self.keep_in_vram = keep_in_vram
+        self.Width = Width
+        self.Height = Height
         self.adabins_helper = None
         self.depth_min = 1000
         self.depth_max = -1000
         self.device = device
         self.use_zoe_depth = use_zoe_depth
-
+        
         if self.use_zoe_depth:
-            self.zoe_depth = ZoeDepth()
+            self.zoe_depth = ZoeDepth(self.Width, self.Height)
 
         if not self.use_zoe_depth:
             model_file = os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')
