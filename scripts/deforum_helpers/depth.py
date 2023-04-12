@@ -24,7 +24,7 @@ class MidasModel:
     def __new__(cls, *args, **kwargs):
         keep_in_vram = kwargs.get('keep_in_vram', False)
         depth_model_engine = kwargs.get('depth_model_engine', "MIDAS-v1")
-        model_switched = cls._instance and cls._instance.depth_model_engine != depth_model_engine
+        model_switched = cls._instance and (cls._instance.depth_model_engine != depth_model_engine or cls._instance.keep_in_vram != keep_in_vram)
 
         if cls._instance is None or (not keep_in_vram and not hasattr(cls._instance, 'midas_model')) or model_switched:
             cls._instance = super().__new__(cls)
@@ -161,7 +161,7 @@ class MidasModel:
         torch.cuda.empty_cache()
 
     def delete_model(self):
-        if self.use_zoe_depth:
+        if "ZoeD" in self.depth_model_engine:
             self.zoe_depth.delete()
             del self.zoe_depth
         else:
