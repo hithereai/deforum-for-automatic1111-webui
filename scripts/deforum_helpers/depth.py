@@ -105,6 +105,11 @@ class MidasModel:
                 mode="bicubic",
                 align_corners=False,
             ).squeeze().cpu().numpy()
+            
+            if DEBUG_MODE:
+                print("Midas depth tensor before 50/19 calculation:")
+                midas_depth_tensor = print(torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze())
+
 
             torch.cuda.empty_cache()
             midas_depth = np.subtract(50.0, midas_depth) / 19.0
