@@ -162,10 +162,7 @@ class MidasModel:
         return Image.fromarray(temp.astype(np.uint8))
 
     def save(self, filename: str, depth: torch.Tensor):
-        if self.use_zoe_depth:
-            self.zoe_depth.save_colored_depth(depth, filename)
-        else:
-            self.to_image(depth).save(filename)
+        self.to_image(depth).save(filename)
 
     def to(self, device):
         self.device = device
