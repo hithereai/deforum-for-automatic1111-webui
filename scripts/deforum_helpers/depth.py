@@ -25,8 +25,9 @@ class MidasModel:
         Width = kwargs.get('Width', 512)
         Height = kwargs.get('Height', 512)
         model_switched = cls._instance and cls._instance.use_zoe_depth != use_zoe_depth
+        resolution_changed = cls._instance and (cls._instance.Width != Width or cls._instance.Height != Height)
 
-        if cls._instance is None or (not keep_in_vram and not hasattr(cls._instance, 'midas_model')) or model_switched:
+        if cls._instance is None or (not keep_in_vram and not hasattr(cls._instance, 'midas_model')) or model_switched or resolution_changed:
             cls._instance = super().__new__(cls)
             cls._instance._initialize(models_path=args[0], device=args[1], half_precision=True, keep_in_vram=keep_in_vram, use_zoe_depth=use_zoe_depth, Width=Width, Height=Height)
         elif cls._instance.should_delete and keep_in_vram:
@@ -46,7 +47,6 @@ class MidasModel:
         
         if self.use_zoe_depth:
             self.zoe_depth = ZoeDepth(self.Width, self.Height)
-
         if not self.use_zoe_depth:
             model_file = os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')
             if not os.path.exists(model_file):
