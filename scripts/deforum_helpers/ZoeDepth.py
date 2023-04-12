@@ -5,11 +5,15 @@ from modules import devices
 from zoedepth.utils.misc import colorize 
 
 class ZoeDepth:
-    def __init__(self):
+    def __init__(self, model_name):
+        if model_name not in ["ZoeD_K", "ZoeD_NK", "ZoeD_N"]:
+            raise ValueError(f"Invalid model name {model_name}. Available options are ZoeD_K, ZoeD_NK, and ZoeD_N.")
+        
         repo = "isl-org/ZoeDepth"
-        self.model_zoe = torch.hub.load(repo, "ZoeD_NK", pretrained=True)
+        self.model_zoe = torch.hub.load(repo, model_name, pretrained=True)
         self.DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
         self.zoe = self.model_zoe.to(self.DEVICE)
+        self.model_name = model_name
         
     def predict(self, image):
         depth_tensor = self.zoe.infer_pil(image, output_type="tensor")

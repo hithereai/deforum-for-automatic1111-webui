@@ -23,8 +23,8 @@ class MidasModel:
 
     def __new__(cls, *args, **kwargs):
         keep_in_vram = kwargs.get('keep_in_vram', False)
-        use_zoe_depth = kwargs.get('use_zoe_depth', False)
-        model_switched = cls._instance and cls._instance.use_zoe_depth != use_zoe_depth
+        depth_model_engine = kwargs.get('depth_model_engine', "MIDAS-v1")
+        model_switched = cls._instance and cls._instance.depth_model_engine != depth_model_engine
 
         if cls._instance is None or (not keep_in_vram and not hasattr(cls._instance, 'midas_model')) or model_switched:
             cls._instance = super().__new__(cls)
@@ -34,18 +34,18 @@ class MidasModel:
         cls._instance.should_delete = not keep_in_vram
         return cls._instance
 
-    def _initialize(self, models_path, device, half_precision=True, keep_in_vram=False, use_zoe_depth=False):
+    def _initialize(self, models_path, device, half_precision=True, keep_in_vram=False, depth_model_engine="MIDAS-v1"):
         self.keep_in_vram = keep_in_vram
         self.adabins_helper = None
         self.depth_min = 1000
         self.depth_max = -1000
         self.device = device
-        self.use_zoe_depth = use_zoe_depth
+        self.depth_model_engine = depth_model_engine
 
-        if self.use_zoe_depth:
-            self.zoe_depth = ZoeDepth()
+        if "ZoeD" in self.depth_model_engine:
+            self.zoe_depth = ZoeDepth(self.depth_model_engine)
 
-        if not self.use_zoe_depth:
+        if self.depth_model_engine == "MIDAS-v1":
             model_file = os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')
             if not os.path.exists(model_file):
                 from basicsr.utils.download_util import load_file_from_url
@@ -77,7 +77,8 @@ class MidasModel:
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
         img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
 
-        if self.use_zoe_depth:
+        # if self.use_zoe_depth:
+        if "ZoeD" in self.depth_model_engine:
             depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
         else:
             w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
