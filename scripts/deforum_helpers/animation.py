@@ -7,10 +7,15 @@ import torch
 from einops import rearrange
 from .prompt import check_is_number
 
+#Deforumation_mediator imports/settings
+from .deforum_mediator import mediator_getValue, mediator_setValue
+usingDeforumation = False
+#End settings
+
 # Webui
 from modules.shared import state, opts
 
-DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
+# DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
 def sample_from_cv2(sample: np.ndarray) -> torch.Tensor:
     sample = ((sample.astype(float) / 255.0) * 2) - 1
@@ -162,7 +167,6 @@ def anim_frame_warp(prev_img_cv2, args, anim_args, keys, frame_idx, depth_model=
     if anim_args.use_depth_warping:
         if depth is None and depth_model is not None:
             depth = depth_model.predict(prev_img_cv2, anim_args.midas_weight, half_precision)
-            
     else:
         depth = None
 
@@ -199,16 +203,40 @@ def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
 
 def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
     TRANSLATION_SCALE = 1.0/200.0 # matches Disco
-    translate_xyz = [
-        -keys.translation_x_series[frame_idx] * TRANSLATION_SCALE, 
-        keys.translation_y_series[frame_idx] * TRANSLATION_SCALE, 
-        -keys.translation_z_series[frame_idx] * TRANSLATION_SCALE
-    ]
-    rotate_xyz = [
-        math.radians(keys.rotation_3d_x_series[frame_idx]), 
-        math.radians(keys.rotation_3d_y_series[frame_idx]), 
-        math.radians(keys.rotation_3d_z_series[frame_idx])
-    ]
+    connectedToServer = False
+    if usingDeforumation: #Should we Connect to the Deforumation websocket server to get translation values?
+        deforumation_translation_x = float(mediator_getValue("translation_x"))
+        deforumation_translation_y = float(mediator_getValue("translation_y"))
+        deforumation_translation_z = float(mediator_getValue("translation_z"))
+        connectedToServer = True
+        translate_xyz = [
+            (-keys.translation_x_series[frame_idx] * TRANSLATION_SCALE) + (-deforumation_translation_x * TRANSLATION_SCALE), 
+            (keys.translation_y_series[frame_idx] * TRANSLATION_SCALE) + (deforumation_translation_y * TRANSLATION_SCALE), 
+            (-keys.translation_z_series[frame_idx] * TRANSLATION_SCALE) + -deforumation_translation_z * TRANSLATION_SCALE
+        ]
+    if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+        translate_xyz = [
+            -keys.translation_x_series[frame_idx] * TRANSLATION_SCALE, 
+            keys.translation_y_series[frame_idx] * TRANSLATION_SCALE, 
+            -keys.translation_z_series[frame_idx] * TRANSLATION_SCALE
+        ]
+    if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get rotation values?
+        connectedToServer = False
+        deforumation_rotation_x = float(mediator_getValue("rotation_x"))
+        deforumation_rotation_y = float(mediator_getValue("rotation_y"))
+        deforumation_rotation_z = float(mediator_getValue("rotation_z"))
+        connectedToServer = True
+        rotate_xyz = [
+            math.radians(keys.rotation_3d_x_series[frame_idx]) + math.radians(deforumation_rotation_x), 
+            math.radians(keys.rotation_3d_y_series[frame_idx]) + math.radians(deforumation_rotation_y), 
+            math.radians(keys.rotation_3d_z_series[frame_idx]) + math.radians(deforumation_rotation_z)
+        ]
+    if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+        rotate_xyz = [
+            math.radians(keys.rotation_3d_x_series[frame_idx]), 
+            math.radians(keys.rotation_3d_y_series[frame_idx]), 
+            math.radians(keys.rotation_3d_z_series[frame_idx])
+        ]
     if anim_args.enable_perspective_flip:
         prev_img_cv2 = flip_3d_perspective(anim_args, prev_img_cv2, keys, frame_idx)
     rot_mat = p3d.euler_angles_to_matrix(torch.tensor(rotate_xyz, device=device), "XYZ").unsqueeze(0)
@@ -227,7 +255,13 @@ def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, a
     
     near = keys.near_series[frame_idx]
     far = keys.far_series[frame_idx]
-    fov_deg = keys.fov_series[frame_idx]
+    connectedToServer = False
+    if usingDeforumation: #Should we Connect to the Deforumation websocket server to get fov values?
+        deforumation_fov = float(mediator_getValue("fov"))
+        connectedToServer = True
+        fov_deg = keys.fov_series[frame_idx] + float(deforumation_fov)
+    if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+        fov_deg = keys.fov_series[frame_idx]
     persp_cam_old = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, device=device)
     persp_cam_new = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, R=rot_mat, T=torch.tensor([translate]), device=device)
 

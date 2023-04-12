@@ -37,9 +37,14 @@ from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
 from .ZoeDepth import ZoeDepth
 import torch
+#Deforumation_mediator imports/settings
+from .deforum_mediator import mediator_getValue, mediator_setValue
+usingDeforumation = False
+#End settings
+
+# DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
 def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
-    DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
     if opts.data.get("deforum_save_gen_info_as_srt"): # create .srt file and set timeframe mechanism using FPS
         srt_filename = os.path.join(args.outdir, f"{args.timestring}.srt")
@@ -116,8 +121,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         depth_model = MidasModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram, use_zoe_depth=anim_args.use_zoe_depth)
         
         if anim_args.midas_weight < 1.0:
-            if DEBUG_MODE:
-                print("Engaging AdaBins, as MiDaS < 1")
             adabins_model = AdaBinsModel(root.models_path, keep_in_vram=keep_in_vram)
             
         # depth-based hybrid composite mask requires saved depth maps
@@ -153,6 +156,19 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         
         # advance start_frame to next frame
         start_frame = next_frame + 1
+
+    if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
+        mediator_setValue("should_resume", 0)
+        print("DEFORUM, SETTING STARTFRAME:"+str(start_frame))
+        mediator_setValue("start_frame", start_frame)
+        print("DEFORUM, SETTING OUTDIR:"+args.outdir)
+        mediator_setValue("frame_outdir", args.outdir)
+        print("DEFORUM, SETTING RESUMESTRING:"+str(anim_args.resume_timestring))
+        if anim_args.resume_from_timestring:
+            mediator_setValue("resume_timestring", anim_args.resume_timestring)
+        else:
+            mediator_setValue("resume_timestring", args.timestring)               
+        connectedToServer = True
 
     args.n_samples = 1
     frame_idx = start_frame
@@ -201,10 +217,10 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
     while frame_idx < (anim_args.max_frames if not anim_args.use_mask_video else anim_args.max_frames - 1):
         #Webui
-        
+        connectedToServer = False        
         state.job = f"frame {frame_idx + 1}/{anim_args.max_frames}"
         state.job_no = frame_idx + 1
-        
+
         if state.skipped:
             print("\n** PAUSED **")
             state.skipped = False
@@ -212,11 +228,71 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 time.sleep(0.1)
             print("** RESUMING **")
 
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server and get is_paused_rendering?
+            ispaused = 0
+            while int(mediator_getValue("is_paused_rendering")) == 1:
+                if ispaused == 0:
+                    print("\n** PAUSED **")
+                    ispaused = 1
+                time.sleep(0.1)
+            if ispaused:
+                print("** RESUMING **")
+            shouldResume = int(mediator_getValue("should_resume"))  #should_resume is should be set when third party chooses another frame (rewqinding forward, etc), it doesn't need to happen in paused mode       
+            if shouldResume == 1: #If shouldResume == 1, then third party has choosen to jump to a non continues frame
+                start_frame = int(mediator_getValue("start_frame"))
+                print("\n** RESUMING FROM FRAME: " + str(start_frame)+" **")
+                # resume animation
+                prev_img = None
+                color_match_sample = None
+                #if anim_args.resume_from_timestring:
+                last_frame = start_frame-1
+                if turbo_steps > 1:
+                    last_frame -= last_frame%turbo_steps
+                path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
+                #print("RESUMING FROM PATH:" + str(path))
+                img = cv2.imread(path)
+                prev_img = img
+                if anim_args.color_coherence != 'None':
+                    color_match_sample = img
+                if turbo_steps > 1:
+                    turbo_next_image, turbo_next_frame_idx = prev_img, last_frame
+                    turbo_prev_image, turbo_prev_frame_idx = turbo_next_image, turbo_next_frame_idx
+                    start_frame = last_frame+turbo_steps
+                args.n_samples = 1
+                frame_idx = start_frame
+                mediator_setValue("should_resume", 0)
+            else:
+                donothing = 0
+            connectedToServer = True
+
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
+            mediator_setValue("start_frame", frame_idx)
+
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
 
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server and get seed_changed == new seed?
+            if int(mediator_getValue("seed_changed")):
+                args.seed = int(mediator_getValue("seed"))
+                connectedToServer = True
+
         noise = keys.noise_schedule_series[frame_idx]
-        strength = keys.strength_schedule_series[frame_idx]
-        scale = keys.cfg_scale_schedule_series[frame_idx]
+        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?            
+            if int(mediator_getValue("should_use_deforumation_strength")) == 1: #Should we use manual or deforum's strength scheduling?
+                deforumation_strength = float(mediator_getValue("strength"))
+                strength = deforumation_strength
+            else:
+                strength = keys.strength_schedule_series[frame_idx]    
+            connectedToServer = True
+        if usingDeforumation == False or connectedToServer == False:
+            strength = keys.strength_schedule_series[frame_idx]
+
+        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
+            connectedToServer = False
+            deforumation_cfg = float(mediator_getValue("cfg"))
+            connectedToServer = True
+            scale = deforumation_cfg
+        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+            scale = keys.cfg_scale_schedule_series[frame_idx]
         contrast = keys.contrast_schedule_series[frame_idx]
         kernel = int(keys.kernel_schedule_series[frame_idx])
         sigma = keys.sigma_schedule_series[frame_idx]
@@ -237,8 +313,16 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         scheduled_noise_multiplier = None
         mask_seq = None
         noise_mask_seq = None
-        if anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
-            args.steps = int(keys.steps_schedule_series[frame_idx])
+        
+        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
+            connectedToServer = False
+            deforumation_steps = int(mediator_getValue("steps"))
+            connectedToServer = True
+            args.steps = int(deforumation_steps)
+            print("Steps is:"+str(args.steps))
+        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+            if anim_args.enable_steps_scheduling and keys.steps_schedule_series[frame_idx] is not None:
+                args.steps = int(keys.steps_schedule_series[frame_idx])
         if anim_args.enable_sampler_scheduling and keys.sampler_schedule_series[frame_idx] is not None:
             scheduled_sampler_name = keys.sampler_schedule_series[frame_idx].casefold()
         if anim_args.enable_clipskip_scheduling and keys.clipskip_schedule_series[frame_idx] is not None:
@@ -363,8 +447,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 cv2.imwrite(os.path.join(args.outdir, filename), img)
                 if anim_args.save_depth_maps:
                     depth_model.save(os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"), depth)
-                    # depth_model.save_colored_depth(depth, os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"))
-                    
             if turbo_next_image is not None:
                 prev_img = turbo_next_image
 
@@ -441,7 +523,14 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         args.pix2pix_img_cfg_scale = float(keys.pix2pix_img_cfg_scale_series[frame_idx])
 
         # grab prompt for current frame
-        args.prompt = prompt_series[frame_idx]
+        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
+            connectedToServer = False
+            deforumation_positive_prompt = str(mediator_getValue("positive_prompt"))
+            deforumation_negative_prompt = str(mediator_getValue("negative_prompt"))
+            args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
+            connectedToServer = True
+        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
+            args.prompt = prompt_series[frame_idx]
         
         if args.seed_behavior == 'schedule' or use_parseq:
             args.seed = int(keys.seed_schedule_series[frame_idx])
