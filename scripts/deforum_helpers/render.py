@@ -260,25 +260,19 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
 
-        if usingDeforumation: #Should we Connect to the Deforumation websocket server and get seed_changed == new seed?
-            if int(mediator_getValue("seed_changed")):
-                args.seed = int(mediator_getValue("seed"))
-
+        if usingDeforumation and int(mediator_getValue("seed_changed")): #Should we Connect to the Deforumation websocket server and get seed_changed == new seed?
+            args.seed = int(mediator_getValue("seed"))
         noise = keys.noise_schedule_series[frame_idx]
-        if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?            
-            if int(mediator_getValue("should_use_deforumation_strength")) == 1: #Should we use manual or deforum's strength scheduling?
-                deforumation_strength = float(mediator_getValue("strength"))
-                strength = deforumation_strength
+        if usingDeforumation and connectedToServer:
+            if int(mediator_getValue("should_use_deforumation_strength")) == 1:
+                strength = float(mediator_getValue("strength"))
             else:
-                strength = keys.strength_schedule_series[frame_idx]    
-        if usingDeforumation == False or connectedToServer == False:
+                strength = keys.strength_schedule_series[frame_idx]
+            scale = float(mediator_getValue("cfg"))
+        else:
             strength = keys.strength_schedule_series[frame_idx]
-
-        if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
-            deforumation_cfg = float(mediator_getValue("cfg"))
-            scale = deforumation_cfg
-        if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             scale = keys.cfg_scale_schedule_series[frame_idx]
+
         contrast = keys.contrast_schedule_series[frame_idx]
         kernel = int(keys.kernel_schedule_series[frame_idx])
         sigma = keys.sigma_schedule_series[frame_idx]
