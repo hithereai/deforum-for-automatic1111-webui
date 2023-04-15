@@ -118,7 +118,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         keep_in_vram = opts.data.get("deforum_keep_3d_models_in_vram")
         
         device = ('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
-        depth_model = MidasModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram, use_zoe_depth=anim_args.use_zoe_depth)
+        depth_model = MidasModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram, use_zoe_depth=anim_args.use_zoe_depth, Width=args.W, Height=args.H)
         
         if anim_args.midas_weight < 1.0:
             adabins_model = AdaBinsModel(root.models_path, keep_in_vram=keep_in_vram)
@@ -344,7 +344,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             lowvram.send_everything_to_cpu()
             sd_hijack.model_hijack.undo_hijack(sd_model)
             devices.torch_gc()
-            depth_model.to(root.device)
+            if predict_depths: depth_model.to(root.device)
         
         if turbo_steps == 1 and opts.data.get("deforum_save_gen_info_as_srt"):
             params_string = format_animation_params(keys, frame_idx)
@@ -605,7 +605,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             opts.data["initial_noise_multiplier"] = scheduled_noise_multiplier
         
         if anim_args.animation_mode == '3D' and (cmd_opts.lowvram or cmd_opts.medvram):
-            depth_model.to('cpu')
+            if predict_depths: depth_model.to('cpu')
             devices.torch_gc()
             lowvram.setup_for_low_vram(sd_model, cmd_opts.medvram)
             sd_hijack.model_hijack.hijack(sd_model)
