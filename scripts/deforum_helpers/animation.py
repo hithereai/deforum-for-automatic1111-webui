@@ -203,12 +203,10 @@ def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
 
 def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
     TRANSLATION_SCALE = 1.0/200.0 # matches Disco
-    connectedToServer = False
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to get translation values?
         deforumation_translation_x = float(mediator_getValue("translation_x"))
         deforumation_translation_y = float(mediator_getValue("translation_y"))
         deforumation_translation_z = float(mediator_getValue("translation_z"))
-        connectedToServer = True
         translate_xyz = [
             (-keys.translation_x_series[frame_idx] * TRANSLATION_SCALE) + (-deforumation_translation_x * TRANSLATION_SCALE), 
             (keys.translation_y_series[frame_idx] * TRANSLATION_SCALE) + (deforumation_translation_y * TRANSLATION_SCALE), 
@@ -221,11 +219,9 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
             -keys.translation_z_series[frame_idx] * TRANSLATION_SCALE
         ]
     if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get rotation values?
-        connectedToServer = False
         deforumation_rotation_x = float(mediator_getValue("rotation_x"))
         deforumation_rotation_y = float(mediator_getValue("rotation_y"))
         deforumation_rotation_z = float(mediator_getValue("rotation_z"))
-        connectedToServer = True
         rotate_xyz = [
             math.radians(keys.rotation_3d_x_series[frame_idx]) + math.radians(deforumation_rotation_x), 
             math.radians(keys.rotation_3d_y_series[frame_idx]) + math.radians(deforumation_rotation_y), 
@@ -255,10 +251,8 @@ def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, a
     
     near = keys.near_series[frame_idx]
     far = keys.far_series[frame_idx]
-    connectedToServer = False
     if usingDeforumation: #Should we Connect to the Deforumation websocket server to get fov values?
         deforumation_fov = float(mediator_getValue("fov"))
-        connectedToServer = True
         fov_deg = keys.fov_series[frame_idx] + float(deforumation_fov)
     if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
         fov_deg = keys.fov_series[frame_idx]
