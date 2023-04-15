@@ -156,18 +156,16 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         
         # advance start_frame to next frame
         start_frame = next_frame + 1
-
-    if usingDeforumation: #Should we Connect to the Deforumation websocket server to write the current resume frame properties?
-        mediator_setValue("should_resume", 0)
-        print("DEFORUM, SETTING STARTFRAME:"+str(start_frame))
-        mediator_setValue("start_frame", start_frame)
-        print("DEFORUM, SETTING OUTDIR:"+args.outdir)
-        mediator_setValue("frame_outdir", args.outdir)
-        print("DEFORUM, SETTING RESUMESTRING:"+str(anim_args.resume_timestring))
-        if anim_args.resume_from_timestring:
-            mediator_setValue("resume_timestring", anim_args.resume_timestring)
-        else:
-            mediator_setValue("resume_timestring", args.timestring)               
+    if usingDeforumation:
+        mediator_setValues({
+            "should_resume": 0,
+            "start_frame": start_frame,
+            "frame_outdir": args.outdir,
+            "resume_timestring": anim_args.resume_timestring if anim_args.resume_from_timestring else args.timestring
+        })
+        print("DEFORUM, SETTING STARTFRAME:", start_frame)
+        print("DEFORUM, SETTING OUTDIR:", args.outdir)
+        print("DEFORUM, SETTING RESUMESTRING:", anim_args.resume_timestring)
         connectedToServer = True
 
     args.n_samples = 1
