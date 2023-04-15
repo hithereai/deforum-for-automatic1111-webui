@@ -161,7 +161,7 @@ def is_controlnet_enabled(controlnet_args):
         if getattr(controlnet_args, f'cn_{i}_enabled', False):
             return True
     return False
-
+    
 def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root, is_img2img=True, frame_idx=1):
     def read_cn_data(cn_idx):
         cn_mask_np, cn_image_np = None, None
@@ -181,17 +181,10 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
         return cn_mask_np, cn_image_np
 
     cnet = find_controlnet()
-    cn_1_mask_np, cn_1_image_np = read_cn_data(1)
-    cn_2_mask_np, cn_2_image_np = read_cn_data(2)
-    cn_3_mask_np, cn_3_image_np = read_cn_data(3)
-    cn_4_mask_np, cn_4_image_np = read_cn_data(4)
+    cn_data = [read_cn_data(i) for i in range(1, 5)]
+    cn_inputframes_list = [os.path.join(args.outdir, f'controlnet_{i}_inputframes') for i in range(1, 5)]
 
-    cn_1_inputframes = os.path.join(args.outdir, 'controlnet_1_inputframes')
-    cn_2_inputframes = os.path.join(args.outdir, 'controlnet_2_inputframes')
-    cn_3_inputframes = os.path.join(args.outdir, 'controlnet_3_inputframes')
-    cn_4_inputframes = os.path.join(args.outdir, 'controlnet_4_inputframes')
-
-    if not os.path.exists(cn_1_inputframes) and not os.path.exists(cn_2_inputframes) and not os.path.exists(cn_3_inputframes) and not os.path.exists(cn_4_inputframes):
+    if not any(os.path.exists(cn_inputframes) for cn_inputframes in cn_inputframes_list):
         print(f'\033[33mNeither the base nor the masking frames for ControlNet were found. Using the regular pipeline\033[0m')
 
     p.scripts = scripts.scripts_img2img if is_img2img else scripts.scripts_txt2img
@@ -206,14 +199,11 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
         cnu['image'] = {'image': img_np, 'mask': mask_np} if mask_np is not None else img_np
         return cnu
 
-    images_np = [cn_1_image_np, cn_2_image_np, cn_3_image_np, cn_4_image_np]
-    masks_np = [cn_1_mask_np, cn_2_mask_np, cn_3_mask_np, cn_4_mask_np]
-    prefixes = ["cn_1", "cn_2", "cn_3", "cn_4"]
+    masks_np, images_np = zip(*cn_data)
 
-    cn_units = [
-        cnet.ControlNetUnit(**create_cnu_dict(controlnet_args, prefix, img_np, mask_np))
-        for prefix, img_np, mask_np in zip(prefixes, images_np, masks_np)
-    ]
+    cn_units = [cnet.ControlNetUnit(**create_cnu_dict(controlnet_args, f"cn_{i+1}", img_np, mask_np))
+            for i, (img_np, mask_np) in enumerate(zip(images_np, masks_np))]
+
     p.script_args = {"enabled": True}
     cnet.update_cn_script_in_processing(p, cn_units, is_img2img=is_img2img, is_ui=False)
 
