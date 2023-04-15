@@ -242,13 +242,9 @@ def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, a
     
     near = keys.near_series[frame_idx]
     far = keys.far_series[frame_idx]
-    if usingDeforumation: #Should we Connect to the Deforumation websocket server to get fov values?
-        deforumation_fov = float(mediator_getValue("fov"))
-        fov_deg = keys.fov_series[frame_idx] + float(deforumation_fov)
-    if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
-        fov_deg = keys.fov_series[frame_idx]
+    fov_deg = keys.fov_series[frame_idx] + (float(mediator_getValue("fov")) if usingDeforumation else 0)
     persp_cam_old = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, device=device)
-    persp_cam_new = p3d.FoVPerspectiveCameras(near, far, aspect_ratio, fov=fov_deg, degrees=True, R=rot_mat, T=torch.tensor([translate]), device=device)
+    persp_cam_ne
 
     # range of [-1,1] is important to torch grid_sample's padding handling
     y,x = torch.meshgrid(torch.linspace(-1.,1.,h,dtype=torch.float32,device=device),torch.linspace(-1.,1.,w,dtype=torch.float32,device=device))
