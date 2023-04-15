@@ -113,7 +113,7 @@ def setup_controlnet_ui_raw():
         return gr.Dropdown.update(value=selected, choices=cn_models)
     with gr.Tabs():
         model_params = {}
-        for i in range(1, 4):
+        for i in range(1, 5):
             with gr.Tab(f"CN Model {i}"):
                 model_params[i] = create_model_in_tab_ui(i)
 
@@ -140,7 +140,7 @@ def controlnet_component_names():
     if not find_controlnet():
         return []
 
-    prefix_list = ['cn_1_', 'cn_2_', 'cn_3_']
+    prefix_list = ['cn_1', 'cn_2', 'cn_3', 'cn_4']
     component_names = [
         'input_video_chosen_file', 'input_video_mask_chosen_file',
         'overwrite_frames', 'vid_path', 'mask_vid_path', 'enabled',
@@ -148,7 +148,7 @@ def controlnet_component_names():
         'module', 'model', 'weight', 'guidance_start', 'guidance_end',
         'processor_res', 'threshold_a', 'threshold_b', 'resize_mode'
     ]
-    arg_names = [f'{prefix}{component}' for prefix in prefix_list for component in component_names]
+    arg_names = [f'{prefix}_{component}' for prefix in prefix_list for component in component_names]
     return arg_names
 
 def controlnet_infotext():
@@ -157,7 +157,7 @@ def controlnet_infotext():
            """
            
 def is_controlnet_enabled(controlnet_args):
-    for i in range(1, 4):
+    for i in range(1, 5):
         if getattr(controlnet_args, f'cn_{i}_enabled', False):
             return True
     return False
@@ -184,12 +184,14 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
     cn_1_mask_np, cn_1_image_np = read_cn_data(1)
     cn_2_mask_np, cn_2_image_np = read_cn_data(2)
     cn_3_mask_np, cn_3_image_np = read_cn_data(3)
+    cn_4_mask_np, cn_4_image_np = read_cn_data(4)
 
     cn_1_inputframes = os.path.join(args.outdir, 'controlnet_1_inputframes')
     cn_2_inputframes = os.path.join(args.outdir, 'controlnet_2_inputframes')
     cn_3_inputframes = os.path.join(args.outdir, 'controlnet_3_inputframes')
+    cn_4_inputframes = os.path.join(args.outdir, 'controlnet_4_inputframes')
 
-    if not os.path.exists(cn_1_inputframes) and not os.path.exists(cn_2_inputframes) and not os.path.exists(cn_3_inputframes):
+    if not os.path.exists(cn_1_inputframes) and not os.path.exists(cn_2_inputframes) and not os.path.exists(cn_3_inputframes) and not os.path.exists(cn_4_inputframes):
         print(f'\033[33mNeither the base nor the masking frames for ControlNet were found. Using the regular pipeline\033[0m')
 
     p.scripts = scripts.scripts_img2img if is_img2img else scripts.scripts_txt2img
@@ -204,9 +206,9 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
         cnu['image'] = {'image': img_np, 'mask': mask_np} if mask_np is not None else img_np
         return cnu
 
-    images_np = [cn_1_image_np, cn_2_image_np, cn_3_image_np]
-    masks_np = [cn_1_mask_np, cn_2_mask_np, cn_3_mask_np]
-    prefixes = ["cn_1", "cn_2", "cn_3"]
+    images_np = [cn_1_image_np, cn_2_image_np, cn_3_image_np, cn_4_image_np]
+    masks_np = [cn_1_mask_np, cn_2_mask_np, cn_3_mask_np, cn_4_mask_np]
+    prefixes = ["cn_1", "cn_2", "cn_3", "cn_4"]
 
     cn_units = [
         cnet.ControlNetUnit(**create_cnu_dict(controlnet_args, prefix, img_np, mask_np))
@@ -235,7 +237,7 @@ def process_controlnet_video(args, anim_args, controlnet_args, video_path, mask_
         print(f'ControlNet {id} {"video mask" if mask_path else "base video"} unpacked!')
 
 def unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
-    for i in range(1, 4):
+    for i in range(1, 5):
         vid_path = getattr(controlnet_args, f'cn_{i}_vid_path', None)
         vid_chosen_file = getattr(controlnet_args, f'cn_{i}_input_video_chosen_file', None)
         vid_name = None
