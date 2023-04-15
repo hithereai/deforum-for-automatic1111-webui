@@ -112,77 +112,14 @@ def setup_controlnet_ui_raw():
         selected = dd if dd in cn_models else "None"
         return gr.Dropdown.update(value=selected, choices=cn_models)
     with gr.Tabs():
-        with gr.Tab(f"CN Model 1"):
-            model_params = {}
-            model_params[1] = create_model_in_tab_ui(1)
+        model_params = {}
+        for i in range(1, 4):
+            with gr.Tab(f"CN Model {i}"):
+                model_params[i] = create_model_in_tab_ui(i)
 
-            cn_1_enabled = model_params[1]["enabled"]
-            cn_1_guess_mode = model_params[1]["guess_mode"]
-            cn_1_invert_image = model_params[1]["invert_image"]
-            cn_1_rgbbgr_mode = model_params[1]["rgbbgr_mode"]
-            cn_1_low_vram = model_params[1]["low_vram"]
-            cn_1_module = model_params[1]["module"]
-            cn_1_model = model_params[1]["model"]
-            cn_1_weight = model_params[1]["weight"]
-            cn_1_guidance_start = model_params[1]["guidance_start"]
-            cn_1_guidance_end = model_params[1]["guidance_end"]
-            cn_1_processor_res = model_params[1]["processor_res"]
-            cn_1_threshold_a = model_params[1]["threshold_a"]
-            cn_1_threshold_b = model_params[1]["threshold_b"]
-            cn_1_resize_mode = model_params[1]["resize_mode"]
-            cn_1_overwrite_frames = model_params[1]["overwrite_frames"]
-            cn_1_vid_path = model_params[1]["vid_path"]
-            cn_1_mask_vid_path = model_params[1]["mask_vid_path"]
-            cn_1_input_video_chosen_file = model_params[1]["input_video_chosen_file"]
-            cn_1_input_video_mask_chosen_file = model_params[1]["input_video_mask_chosen_file"]
-                
-        with gr.Tab(f"CN Model 2"):
-            model_params = {}
-            model_params[2] = create_model_in_tab_ui(2)
+                for key, value in model_params[i].items():
+                    locals()[f"cn_{i}_{key}"] = value
 
-            cn_2_enabled = model_params[2]["enabled"]
-            cn_2_guess_mode = model_params[2]["guess_mode"]
-            cn_2_invert_image = model_params[2]["invert_image"]
-            cn_2_rgbbgr_mode = model_params[2]["rgbbgr_mode"]
-            cn_2_low_vram = model_params[2]["low_vram"]
-            cn_2_module = model_params[2]["module"]
-            cn_2_model = model_params[2]["model"]
-            cn_2_weight = model_params[2]["weight"]
-            cn_2_guidance_start = model_params[2]["guidance_start"]
-            cn_2_guidance_end = model_params[2]["guidance_end"]
-            cn_2_processor_res = model_params[2]["processor_res"]
-            cn_2_threshold_a = model_params[2]["threshold_a"]
-            cn_2_threshold_b = model_params[2]["threshold_b"]
-            cn_2_resize_mode = model_params[2]["resize_mode"]
-            cn_2_overwrite_frames = model_params[2]["overwrite_frames"]
-            cn_2_vid_path = model_params[2]["vid_path"]
-            cn_2_mask_vid_path = model_params[2]["mask_vid_path"]
-            cn_2_input_video_chosen_file = model_params[2]["input_video_chosen_file"]
-            cn_2_input_video_mask_chosen_file = model_params[2]["input_video_mask_chosen_file"]
-
-        with gr.Tab(f"CN Model 3"):
-            model_params = {}
-            model_params[3] = create_model_in_tab_ui(3)
-
-            cn_3_enabled = model_params[3]["enabled"]
-            cn_3_guess_mode = model_params[3]["guess_mode"]
-            cn_3_invert_image = model_params[3]["invert_image"]
-            cn_3_rgbbgr_mode = model_params[3]["rgbbgr_mode"]
-            cn_3_low_vram = model_params[3]["low_vram"]
-            cn_3_module = model_params[3]["module"]
-            cn_3_model = model_params[3]["model"]
-            cn_3_weight = model_params[3]["weight"]
-            cn_3_guidance_start = model_params[3]["guidance_start"]
-            cn_3_guidance_end = model_params[3]["guidance_end"]
-            cn_3_processor_res = model_params[3]["processor_res"]
-            cn_3_threshold_a = model_params[3]["threshold_a"]
-            cn_3_threshold_b = model_params[3]["threshold_b"]
-            cn_3_resize_mode = model_params[3]["resize_mode"]
-            cn_3_overwrite_frames = model_params[3]["overwrite_frames"]
-            cn_3_vid_path = model_params[3]["vid_path"]
-            cn_3_mask_vid_path = model_params[3]["mask_vid_path"]
-            cn_3_input_video_chosen_file = model_params[3]["input_video_chosen_file"]
-            cn_3_input_video_mask_chosen_file = model_params[3]["input_video_mask_chosen_file"]
     return locals()
             
 def setup_controlnet_ui():
