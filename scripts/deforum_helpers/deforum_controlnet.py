@@ -141,27 +141,14 @@ def controlnet_component_names():
         return []
 
     prefix_list = ['cn_1_', 'cn_2_', 'cn_3_']
-    arg_names = []
-    for prefix in prefix_list:
-        arg_names.extend([f'{prefix}input_video_chosen_file',
-                          f'{prefix}input_video_mask_chosen_file',
-                          f'{prefix}overwrite_frames',
-                          f'{prefix}vid_path',
-                          f'{prefix}mask_vid_path',
-                          f'{prefix}enabled',
-                          f'{prefix}guess_mode',
-                          f'{prefix}invert_image',
-                          f'{prefix}rgbbgr_mode',
-                          f'{prefix}low_vram',
-                          f'{prefix}module',
-                          f'{prefix}model',
-                          f'{prefix}weight',
-                          f'{prefix}guidance_start',
-                          f'{prefix}guidance_end',
-                          f'{prefix}processor_res',
-                          f'{prefix}threshold_a',
-                          f'{prefix}threshold_b',
-                          f'{prefix}resize_mode'])
+    component_names = [
+        'input_video_chosen_file', 'input_video_mask_chosen_file',
+        'overwrite_frames', 'vid_path', 'mask_vid_path', 'enabled',
+        'guess_mode', 'invert_image', 'rgbbgr_mode', 'low_vram',
+        'module', 'model', 'weight', 'guidance_start', 'guidance_end',
+        'processor_res', 'threshold_a', 'threshold_b', 'resize_mode'
+    ]
+    arg_names = [f'{prefix}{component}' for prefix in prefix_list for component in component_names]
     return arg_names
 
 def controlnet_infotext():
