@@ -228,26 +228,23 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         if usingDeforumation: #Should we Connect to the Deforumation websocket server and get is_paused_rendering?
             ispaused = 0
-            while int(mediator_getValue("is_paused_rendering")) == 1:
+            while int(mediator_getValue("is_paused_rendering")):
                 if ispaused == 0:
                     print("\n** PAUSED **")
                     ispaused = 1
                 time.sleep(0.1)
             if ispaused:
                 print("** RESUMING **")
-            shouldResume = int(mediator_getValue("should_resume"))  #should_resume is should be set when third party chooses another frame (rewqinding forward, etc), it doesn't need to happen in paused mode       
-            if shouldResume == 1: #If shouldResume == 1, then third party has choosen to jump to a non continues frame
+
+            if int(mediator_getValue("should_resume")): #should_resume is should be set when third party chooses another frame (rewqinding forward, etc), it doesn't need to happen in paused mode     
                 start_frame = int(mediator_getValue("start_frame"))
                 print("\n** RESUMING FROM FRAME: " + str(start_frame)+" **")
-                # resume animation
                 prev_img = None
                 color_match_sample = None
-                #if anim_args.resume_from_timestring:
                 last_frame = start_frame-1
                 if turbo_steps > 1:
                     last_frame -= last_frame%turbo_steps
                 path = os.path.join(args.outdir,f"{args.timestring}_{last_frame:09}.png")
-                #print("RESUMING FROM PATH:" + str(path))
                 img = cv2.imread(path)
                 prev_img = img
                 if anim_args.color_coherence != 'None':
@@ -259,10 +256,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 args.n_samples = 1
                 frame_idx = start_frame
                 mediator_setValue("should_resume", 0)
-            else:
-                donothing = 0
-
-        if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
             mediator_setValue("start_frame", frame_idx)
 
         print(f"\033[36mAnimation frame: \033[0m{frame_idx}/{anim_args.max_frames}  ")
