@@ -263,7 +263,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 mediator_setValue("should_resume", 0)
             else:
                 donothing = 0
-            connectedToServer = True
 
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to tell 3:d parties what frame_idx we are on currently?
             mediator_setValue("start_frame", frame_idx)
@@ -273,7 +272,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         if usingDeforumation: #Should we Connect to the Deforumation websocket server and get seed_changed == new seed?
             if int(mediator_getValue("seed_changed")):
                 args.seed = int(mediator_getValue("seed"))
-                connectedToServer = True
 
         noise = keys.noise_schedule_series[frame_idx]
         if usingDeforumation: #Should we Connect to the Deforumation websocket server to get strength values?            
@@ -282,14 +280,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 strength = deforumation_strength
             else:
                 strength = keys.strength_schedule_series[frame_idx]    
-            connectedToServer = True
         if usingDeforumation == False or connectedToServer == False:
             strength = keys.strength_schedule_series[frame_idx]
 
         if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
-            connectedToServer = False
             deforumation_cfg = float(mediator_getValue("cfg"))
-            connectedToServer = True
             scale = deforumation_cfg
         if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             scale = keys.cfg_scale_schedule_series[frame_idx]
@@ -315,9 +310,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         noise_mask_seq = None
         
         if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
-            connectedToServer = False
             deforumation_steps = int(mediator_getValue("steps"))
-            connectedToServer = True
             args.steps = int(deforumation_steps)
             print("Steps is:"+str(args.steps))
         if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
@@ -524,11 +517,9 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
         # grab prompt for current frame
         if usingDeforumation and connectedToServer: #Should we Connect to the Deforumation websocket server to get CFG values?
-            connectedToServer = False
             deforumation_positive_prompt = str(mediator_getValue("positive_prompt"))
             deforumation_negative_prompt = str(mediator_getValue("negative_prompt"))
             args.prompt = deforumation_positive_prompt + "--neg "+ deforumation_negative_prompt
-            connectedToServer = True
         if usingDeforumation == False or connectedToServer == False: #If we are not using Deforumation, go with the values in Deforum GUI (or if we can't connect to the Deforumation server).
             args.prompt = prompt_series[frame_idx]
         
