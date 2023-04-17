@@ -9,7 +9,6 @@ from .video_audio_utilities import vid2frames, get_quick_vid_info, get_frame_nam
 from .human_masking import video2humanmasks
 from .load_images import load_image
 from modules.shared import opts
-# from .RAFT import RAFT
 
 DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
