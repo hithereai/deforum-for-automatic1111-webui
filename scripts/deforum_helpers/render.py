@@ -36,11 +36,16 @@ from .raft import RAFTModel
 # Webui
 from modules.shared import opts, cmd_opts, state, sd_model
 from modules import lowvram, devices, sd_hijack
-
-
-DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
+from .ZoeDepth import ZoeDepth
+import torch
 
 def render_animation(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
+    DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
+
+    if opts.data.get("deforum_save_gen_info_as_srt"): # create .srt file and set timeframe mechanism using FPS
+        srt_filename = os.path.join(args.outdir, f"{args.timestring}.srt")
+        srt_frame_duration = init_srt_file(srt_filename, video_args.fps)
+
     if anim_args.animation_mode in ['2D','3D']:
         # handle hybrid video generation
         if anim_args.hybrid_composite != 'None' or anim_args.hybrid_motion in ['Affine', 'Perspective', 'Optical Flow']:
@@ -109,9 +114,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         keep_in_vram = opts.data.get("deforum_keep_3d_models_in_vram")
         
         device = ('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
-        depth_model = MidasModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram)
+        depth_model = MidasModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram, use_zoe_depth=anim_args.use_zoe_depth, Width=args.W, Height=args.H)
         
         if anim_args.midas_weight < 1.0:
+            if DEBUG_MODE:
+                print("Engaging AdaBins, as MiDaS < 1")
             adabins_model = AdaBinsModel(root.models_path, keep_in_vram=keep_in_vram)
             
         # depth-based hybrid composite mask requires saved depth maps
@@ -257,7 +264,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             lowvram.send_everything_to_cpu()
             sd_hijack.model_hijack.undo_hijack(sd_model)
             devices.torch_gc()
-            depth_model.to(root.device)
+            if predict_depths: depth_model.to(root.device)
         
         # emit in-between frames
         if turbo_steps > 1:
@@ -269,7 +276,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 advance_next = tween_frame_idx > turbo_next_frame_idx
 
                 # optical flow cadence setup before animation warping
-                if anim_args.animation_mode == '3D' and anim_args.optical_flow_cadence != 'None':
+                if anim_args.animation_mode in ['2D', '3D'] and anim_args.optical_flow_cadence != 'None':
                     if keys.strength_schedule_series[tween_frame_start_idx] > 0:
                         if cadence_flow is None and turbo_prev_image is not None and turbo_next_image is not None:
                             cadence_flow = get_flow_from_images(turbo_prev_image, turbo_next_image, anim_args.optical_flow_cadence) / 2
@@ -288,9 +295,16 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
 
                 # do optical flow cadence after animation warping
                 if cadence_flow is not None:
-                    cadence_flow = abs_flow_to_rel_flow(cadence_flow)
+                    # scale down relative flow for 2D to avoid warping function's effect on relative flow
+                    scale_factor = 1000 if anim_args.animation_mode == '2D' else 1
+                    cadence_flow = abs_flow_to_rel_flow(cadence_flow, scale_factor)
+                    # store sampling mode and restore after (for 3D cadence, does nothing in 2D)
+                    current_sampling_mode = anim_args.sampling_mode
+                    anim_args.sampling_mode = "nearest"
                     cadence_flow, _ = anim_frame_warp(cadence_flow, args, anim_args, keys, tween_frame_idx, depth_model, depth=depth, device=root.device, half_precision=root.half_precision)
-                    cadence_flow_inc = rel_flow_to_abs_flow(cadence_flow) * tween
+                    anim_args.sampling_mode = current_sampling_mode
+                    # determing flow increment and apply
+                    cadence_flow_inc = rel_flow_to_abs_flow(cadence_flow, scale_factor) * tween
                     if advance_prev:
                         turbo_prev_image = image_transform_optical_flow(turbo_prev_image, cadence_flow_inc, cadence_flow_factor)
                     if advance_next:
@@ -349,6 +363,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
                 cv2.imwrite(os.path.join(args.outdir, filename), img)
                 if anim_args.save_depth_maps:
                     depth_model.save(os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"), depth)
+                    # depth_model.save_colored_depth(depth, os.path.join(args.outdir, f"{args.timestring}_depth_{tween_frame_idx:09}.png"))
+                    
             if turbo_next_image is not None:
                 prev_img = turbo_next_image
 
@@ -500,7 +516,7 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
             opts.data["initial_noise_multiplier"] = scheduled_noise_multiplier
         
         if anim_args.animation_mode == '3D' and (cmd_opts.lowvram or cmd_opts.medvram):
-            depth_model.to('cpu')
+            if predict_depths: depth_model.to('cpu')
             devices.torch_gc()
             lowvram.setup_for_low_vram(sd_model, cmd_opts.medvram)
             sd_hijack.model_hijack.hijack(sd_model)
@@ -601,6 +617,6 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         args.seed = next_seed(args)
         
     if predict_depths and not keep_in_vram:
-        depth_model.delete_model
+        depth_model.delete_model()
         if anim_args.midas_weight < 1.0:
             adabins_model.delete_model()

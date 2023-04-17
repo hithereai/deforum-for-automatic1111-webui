@@ -119,6 +119,7 @@ def DeforumAnimArgs():
     perlin_persistence = 0.5 
     #**3D Depth Warping:**
     use_depth_warping = True 
+    use_zoe_depth = False
     midas_weight = 0.2 
     padding_mode = 'border' # ['border', 'reflection', 'zeros'] 
     sampling_mode = 'bicubic' # ['bicubic', 'bilinear', 'nearest']
@@ -519,6 +520,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             with gr.TabItem('Depth Warping'): 
                                 with gr.Row(variant='compact'):
                                     use_depth_warping = gr.Checkbox(label="Use depth warping", value=da.use_depth_warping, interactive=True)
+                                    use_zoe_depth = gr.Checkbox(label="Use ZoeDepth", value=da.use_zoe_depth, interactive=True, info="a new depth estimation model. provides *much* better results at the cost of more gpu vram")
                                     midas_weight = gr.Number(label="MiDaS weight", value=da.midas_weight, interactive=True, info="sets a midpoint at which a depthmap is to be drawn: range [-1 to +1]")
                                 with gr.Row(variant='compact'):
                                     padding_mode = gr.Radio(['border', 'reflection', 'zeros'], label="Padding mode", value=da.padding_mode, elem_id="padding_mode", info="controls the handling of pixels outside the field of view as they come into the scene. hover on the options for more info")
@@ -570,7 +572,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             color_coherence_image_path = gr.Textbox(label="Color coherence image path", lines=1, value=da.color_coherence_image_path, interactive=True)
                         with gr.Row(visible=False) as color_coherence_video_every_N_frames_row:
                             color_coherence_video_every_N_frames = gr.Number(label="Color coherence video every N frames", value=1, interactive=True)
-                        with gr.Row(variant='compact', visible=False) as optical_flow_cadence_row:
+                        with gr.Row(variant='compact') as optical_flow_cadence_row:
                             with gr.Column(min_width=220):
                                 optical_flow_cadence = gr.Dropdown(choices=['None', 'RAFT', 'DIS Fine', 'DIS Medium', 'Farneback'], label="Optical flow cadence", value=da.optical_flow_cadence, elem_id="optical_flow_cadence", interactive=True, info="use optical flow estimation for your in-between (cadence) frames")
                             with gr.Column(min_width=220, visible=False) as cadence_flow_factor_schedule_column:
@@ -705,7 +707,10 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
             # CONTROLNET TAB
             with gr.TabItem('ControlNet'):
                     gr.HTML(controlnet_infotext())
-                    controlnet_dict = setup_controlnet_ui()
+                    try:
+                        controlnet_dict = setup_controlnet_ui()
+                    except Exception as e:
+                        raise Exception(e)
             # HYBRID VIDEO TAB
             with gr.TabItem('Hybrid Video'):
                 # this html only shows when not in 2d/3d mode
@@ -969,7 +974,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
     optical_flow_redo_generation,redo_flow_factor_schedule,diffusion_redo]
     for output in diffusion_cadence_outputs:
         animation_mode.change(fn=change_diffusion_cadence_visibility, inputs=animation_mode, outputs=output)
-    three_d_related_outputs = [depth_3d_warping_accord,fov_accord,optical_flow_cadence_row,cadence_flow_factor_schedule,only_3d_motion_column]
+    three_d_related_outputs = [depth_3d_warping_accord,fov_accord,only_3d_motion_column]
     for output in three_d_related_outputs:
         animation_mode.change(fn=disble_3d_related_stuff, inputs=animation_mode, outputs=output)
     animation_mode.change(fn=enable_2d_related_stuff, inputs=animation_mode, outputs=only_2d_motion_column) 
@@ -1050,7 +1055,7 @@ anim_args_names =   str(r'''animation_mode, max_frames, border,
                         diffusion_cadence, optical_flow_cadence, cadence_flow_factor_schedule,
                         optical_flow_redo_generation, redo_flow_factor_schedule, diffusion_redo,
                         noise_type, perlin_w, perlin_h, perlin_octaves, perlin_persistence,
-                        use_depth_warping, midas_weight,
+                        use_depth_warping, use_zoe_depth ,midas_weight,
                         padding_mode, sampling_mode, save_depth_maps,
                         video_init_path, extract_nth_frame, extract_from_frame, extract_to_frame, overwrite_extracted_frames,
                         use_mask_video, video_mask_path,
@@ -1175,7 +1180,7 @@ def process_args(args_dict_main, run_id):
     loop_args = SimpleNamespace(**loop_args_dict)
     controlnet_args = SimpleNamespace(**controlnet_args_dict)
 
-    p.width, p.height = map(lambda x: x - x % 64, (args.W, args.H))
+    p.width, p.height = map(lambda x: x - x % 8, (args.W, args.H))
     p.steps = args.steps
     p.seed = args.seed
     p.sampler_name = args.sampler
@@ -1258,7 +1263,7 @@ def upload_vid_to_depth(vid_to_depth_chosen_file, mode, thresholding, threshold_
     root_params = Root()
     f_models_path = root_params['models_path']
     
-    process_depth_vid_upload_logic(vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, vid_to_depth_chosen_file.orig_name, depth_keep_imgs, ffmpeg_location, ffmpeg_crf, ffmpeg_preset, f_models_path)
+    process_depth_vid_upload_logic(vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, vid_to_depth_chosen_file.orig_name, depth_keep_imgs, f_location, f_crf, f_preset, f_models_path)
 
 def ncnn_upload_vid_to_upscale(vid_path, in_vid_fps, in_vid_res, out_vid_res, upscale_model, upscale_factor, keep_imgs):
     if vid_path is None:
