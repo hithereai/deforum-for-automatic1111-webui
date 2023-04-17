@@ -9,6 +9,7 @@ from .video_audio_utilities import vid2frames, get_quick_vid_info, get_frame_nam
 from .human_masking import video2humanmasks
 from .load_images import load_image
 from modules.shared import opts
+from .RAFT import RAFT
 
 DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
@@ -16,7 +17,7 @@ def delete_all_imgs_in_folder(folder_path):
         files = list(pathlib.Path(folder_path).glob('*.jpg'))
         files.extend(list(pathlib.Path(folder_path).glob('*.png')))
         for f in files: os.remove(f)
-
+    
 def hybrid_generation(args, anim_args, root):
     video_in_frame_path = os.path.join(args.outdir, 'inputframes')
     hybrid_frame_path = os.path.join(args.outdir, 'hybridframes')
@@ -261,8 +262,9 @@ def get_transformation_matrix_from_images(img1, img2, hybrid_motion, max_corners
         transformation_rigid_matrix, rigid_mask = cv2.estimateAffinePartial2D(prev_pts, curr_pts)
         return transformation_rigid_matrix
 
-def get_flow_from_images(i1, i2, method, prev_flow=None):
-    # Unused presets are included for this function's use in other applications (or real-time applications).
+def get_flow_from_images(i1, i2, method, prev_flow=None): # Unused presets are included for this function's use in other applications (or real-time applications).
+    if method =="RAFT":
+        r = get_flow_from_images_RAFT(i1, i2)        
     if method =="DIS Medium":
         r = get_flow_from_images_DIS(i1, i2, 'medium', prev_flow)
     elif method =="DIS Fast": # Unused
@@ -283,6 +285,11 @@ def get_flow_from_images(i1, i2, method, prev_flow=None):
         r = get_flow_from_images_Farneback(i1, i2, prev_flow)
     return r
     # return detect_scene_change_abs(r)
+
+def get_flow_from_images_RAFT(image1, image2):
+    raft_model = RAFT()
+    flow = raft_model.predict(image1, image2)
+    return flow
 
 def get_flow_from_images_DIS(i1, i2, preset, prev_flow):
     # DIS PRESETS CHART KEY: finest scale, grad desc its, patch size

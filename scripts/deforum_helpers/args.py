@@ -574,12 +574,12 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             color_coherence_video_every_N_frames = gr.Number(label="Color coherence video every N frames", value=1, interactive=True)
                         with gr.Row(variant='compact') as optical_flow_cadence_row:
                             with gr.Column(min_width=220):
-                                optical_flow_cadence = gr.Dropdown(choices=['None', 'DIS Fine', 'DIS Medium', 'Farneback'], label="Optical flow cadence", value=da.optical_flow_cadence, elem_id="optical_flow_cadence", interactive=True, info="use optical flow estimation for your in-between (cadence) frames")
+                                optical_flow_cadence = gr.Dropdown(choices=['None', 'RAFT', 'DIS Fine', 'DIS Medium', 'Farneback'], label="Optical flow cadence", value=da.optical_flow_cadence, elem_id="optical_flow_cadence", interactive=True, info="use optical flow estimation for your in-between (cadence) frames")
                             with gr.Column(min_width=220, visible=False) as cadence_flow_factor_schedule_column:
                                 cadence_flow_factor_schedule = gr.Textbox(label="Cadence flow factor schedule", lines=1, value = da.cadence_flow_factor_schedule, interactive=True)
                         with gr.Row(variant='compact'):
                             with gr.Column(min_width=220):
-                                optical_flow_redo_generation = gr.Dropdown(choices=['None', 'DIS Fine', 'DIS Medium', 'Farneback'], label="Optical flow generation", value=da.optical_flow_redo_generation, elem_id="optical_flow_redo_generation", visible=True, interactive=True, info="this option takes twice as long because it generates twice in order to capture the optical flow from the previous image to the first generation, then warps the previous image and redoes the generation")
+                                optical_flow_redo_generation = gr.Dropdown(choices=['None', 'RAFT', 'DIS Fine', 'DIS Medium', 'Farneback'], label="Optical flow generation", value=da.optical_flow_redo_generation, elem_id="optical_flow_redo_generation", visible=True, interactive=True, info="this option takes twice as long because it generates twice in order to capture the optical flow from the previous image to the first generation, then warps the previous image and redoes the generation")
                             with gr.Column(min_width=220, visible=False) as redo_flow_factor_schedule_column:
                                 redo_flow_factor_schedule = gr.Textbox(label="Generation flow factor schedule", lines=1, value = da.redo_flow_factor_schedule, interactive=True)
                         with gr.Row(variant='compact'):
@@ -749,7 +749,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         with gr.Column(variant='compact'):
                             with gr.Row(variant='compact'):
                                 with gr.Column(scale=1):
-                                    hybrid_flow_method = gr.Radio(['DIS Fine', 'DIS Medium', 'Farneback'], label="Flow method", value=da.hybrid_flow_method, elem_id="hybrid_flow_method", visible=False)
+                                    hybrid_flow_method = gr.Radio(['RAFT', 'DIS Fine', 'DIS Medium', 'Farneback'], label="Flow method", value=da.hybrid_flow_method, elem_id="hybrid_flow_method", visible=False)
                     with gr.Row(variant='compact') as hybrid_flow_row:
                         hybrid_comp_mask_type = gr.Radio(['None', 'Depth', 'Video Depth', 'Blend', 'Difference'], label="Comp mask type", value=da.hybrid_comp_mask_type, elem_id="hybrid_comp_mask_type", visible=False)
                     with gr.Row(visible=False, variant='compact') as hybrid_comp_mask_row:
