@@ -23,6 +23,7 @@ from .parseq_adapter import ParseqAnimKeys
 from .seed import next_seed
 from .image_sharpening import unsharp_mask
 from .load_images import get_mask, load_img, load_image, get_mask_from_file
+from .subtitle_handler import init_srt_file, write_frame_subtitle, format_animation_params
 from .hybrid_video import (
     hybrid_generation, hybrid_composite, get_matrix_for_hybrid_motion, get_matrix_for_hybrid_motion_prev, get_flow_for_hybrid_motion,get_flow_for_hybrid_motion_prev,
     image_transform_ransac, image_transform_optical_flow, get_flow_from_images, abs_flow_to_rel_flow, rel_flow_to_abs_flow)
