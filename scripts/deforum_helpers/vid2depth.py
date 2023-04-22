@@ -12,7 +12,7 @@ from modules import devices
 import shutil
 from queue import Queue, Empty
 import modules.scripts as scr
-from .depth import MidasModel, AdaBinsModel
+from .depth import MidasModel
 from .frame_interpolation import clean_folder_name
 from rife.inference_video import duplicate_pngs_from_folder
 from .video_audio_utilities import get_quick_vid_info, vid2frames, ffmpeg_stitch_video
@@ -183,8 +183,6 @@ def load_depth_model(models_path, midas_weight_vid2depth):
     keep_in_vram = False # TODO: Future  - handle this too?
     print('Loading Depth Model')
     depth_model = MidasModel(models_path, device, not cmd_opts.no_half, keep_in_vram=keep_in_vram)
-    if midas_weight_vid2depth < 1.0:
-        adabins_model = AdaBinsModel(models_path, keep_in_vram=keep_in_vram)
     return depth_model
 
 # Anime Remove Background by skytnt and onnx model
