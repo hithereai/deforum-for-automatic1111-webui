@@ -16,6 +16,14 @@ from modules import lowvram, devices
 from modules.shared import opts
 from .ZoeDepth import ZoeDepth
 
+
+def compare_depth(dpt_out, adabins_out):
+        # m = -(1/19) 
+        m = 19 
+        b = 50
+        dpt_out = dpt_out * m + b
+        return torch.cosine_similarity(dpt_out, adabins_out)
+        
 class MidasModel:
     _instance = None
 
@@ -76,6 +84,8 @@ class MidasModel:
             if half_precision:
                 self.midas_model = self.midas_model.half()
 
+    
+        
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
         DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
         
@@ -113,7 +123,7 @@ class MidasModel:
                 print(torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze())
 
             torch.cuda.empty_cache()
-            midas_depth = np.subtract(50.0, midas_depth) / 19.0
+            # midas_depth = np.subtract(50.0, midas_depth) / 19.0
             depth_tensor = torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze().to(self.device)
         
         if DEBUG_MODE:
@@ -149,11 +159,16 @@ class MidasModel:
             torch.cuda.empty_cache()
 
             if not self.use_zoe_depth:
+                similarity = compare_depth(torch.from_numpy(midas_depth), torch.from_numpy(adabins_depth))
+                print("Similarity between MiDaS and AdaBins depth maps:", similarity)
                 midas_depth = (midas_depth * midas_weight + adabins_depth * (1.0 - midas_weight))
                 depth_tensor = torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze().to(self.device)
             else:
                 depth_map = (depth_tensor.cpu().numpy() * midas_weight + adabins_depth * (1.0 - midas_weight))
                 depth_tensor = torch.from_numpy(np.expand_dims(depth_map, axis=0)).squeeze().to(self.device)
+                
+            # similarity = compare_depth(torch.from_numpy(midas_depth), torch.from_numpy(adabins_depth))
+            # print("Similarity AFTER between MiDaS and AdaBins depth maps:", similarity)
 
         return depth_tensor
 
