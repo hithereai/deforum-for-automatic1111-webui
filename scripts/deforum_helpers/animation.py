@@ -198,7 +198,7 @@ def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
     )
 
 def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
-    TRANSLATION_SCALE = 1.0/200.0 # matches Disco
+    TRANSLATION_SCALE = 1.0/100.0 # matches Disco
     translate_xyz = [
         -keys.translation_x_series[frame_idx] * TRANSLATION_SCALE, 
         keys.translation_y_series[frame_idx] * TRANSLATION_SCALE, 
