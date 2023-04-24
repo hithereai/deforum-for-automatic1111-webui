@@ -163,7 +163,7 @@ class MidasModel:
         if self.use_zoe_depth:
             depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
             # if use_adabins:
-            #     depth_tensor = torch.subtract(447.0, depth_tensor) / 69
+            depth_tensor = torch.subtract(447.0, depth_tensor) / 69
         else:
             depth_tensor, midas_depth = self.process_dpt(prev_img_cv2, half_precision)
         
