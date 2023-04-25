@@ -2,6 +2,7 @@
 # https://github.com/Mikubill/sd-webui-controlnet — controlnet repo
 
 import os, sys
+import shutil
 import gradio as gr
 import scripts
 import modules.scripts as scrpts
@@ -75,8 +76,8 @@ def setup_controlnet_ui_raw():
             overwrite_frames = gr.Checkbox(label='Overwrite input frames', value=True, interactive=True)
             vid_path = gr.Textbox(value='', label="ControlNet Input Video Path", interactive=True)
             mask_vid_path = gr.Textbox(value='', label="ControlNet Mask Video Path", interactive=True)
-        input_video_chosen_file = gr.File(label="ControlNet Video Input", interactive=True, file_count="single", file_types=["video"], elem_id="controlnet_input_video_chosen_file", visible=False)
-        input_video_mask_chosen_file = gr.File(label="ControlNet Video Mask Input", interactive=True, file_count="single", file_types=["video"], elem_id="controlnet_input_video_mask_chosen_file", visible=False)
+        input_video_chosen_file = gr.File(label="ControlNet Video Input", interactive=True, file_count="single", file_types=["video","image"], elem_id="controlnet_input_video_chosen_file", visible=False)
+        input_video_mask_chosen_file = gr.File(label="ControlNet Video Mask Input", interactive=True, file_count="single", file_types=["video","image"], elem_id="controlnet_input_video_mask_chosen_file", visible=False)
         hide_output_list = [pixel_perfect,low_vram,mod_row,module,weight_row,env_row,vid_settings_row,input_video_chosen_file,input_video_mask_chosen_file, advanced_column, control_mode_row] 
         for cn_output in hide_output_list:
             enabled.change(fn=hide_ui_by_cn_status, inputs=enabled,outputs=cn_output)
@@ -148,26 +149,65 @@ def is_controlnet_enabled(controlnet_args):
     return False
     
 def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root, is_img2img=True, frame_idx=1):
-    def read_cn_data(cn_idx):
+    # def read_cn_data(cn_idx, image_file_path=None):
+        # cn_mask_np, cn_image_np = None, None
+        # cn_inputframes = os.path.join(args.outdir, f'controlnet_{cn_idx}_inputframes')
+
+        # if os.path.exists(cn_inputframes):
+            # cn_frame_path = image_file_path or os.path.join(cn_inputframes, f"{frame_idx:09}.jpg")
+            # cn_mask_frame_path = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes', f"{frame_idx:09}.jpg")
+
+            # frame_num = 1 if image_file_path else frame_idx
+            # print(f'Reading ControlNet {cn_idx} base frame {frame_num} at {cn_frame_path}')
+            # if os.path.exists(cn_mask_frame_path):
+                # print(f'Reading ControlNet {cn_idx} mask frame {frame_idx} at {cn_mask_frame_path}')
+                # cn_mask_np = np.array(Image.open(cn_mask_frame_path).convert("RGB")).astype('uint8')
+
+            # if os.path.exists(cn_frame_path):
+                # cn_image_np = np.array(Image.open(cn_frame_path).convert("RGB")).astype('uint8')
+        # return cn_mask_np, cn_image_np
+    def read_cn_data(cn_idx, frame_idx):
         cn_mask_np, cn_image_np = None, None
         cn_inputframes = os.path.join(args.outdir, f'controlnet_{cn_idx}_inputframes')
+
         if os.path.exists(cn_inputframes):
+            frame_files = os.listdir(cn_inputframes)
+            if frame_files:
+                image_file_path = os.path.join(cn_inputframes, frame_files[0])
+                is_single_image = is_image_file(image_file_path)
+
+            # if is_single_image:
+                # print("*******************************************")
+                # cn_frame_path = image_file_path
+                # frame_num = 1
+            # else:
             cn_frame_path = os.path.join(cn_inputframes, f"{frame_idx:09}.jpg")
+            frame_num = frame_idx
+
             cn_mask_frame_path = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes', f"{frame_idx:09}.jpg")
 
-            print(f'Reading ControlNet {cn_idx} base frame {frame_idx} at {cn_frame_path}')
-            print(f'Reading ControlNet {cn_idx} mask frame {frame_idx} at {cn_mask_frame_path}')
+            print(f'Reading ControlNet {cn_idx} base frame {frame_num} at {cn_frame_path}')
+            if os.path.exists(cn_mask_frame_path):
+                print(f'Reading ControlNet {cn_idx} mask frame {frame_idx} at {cn_mask_frame_path}')
+                cn_mask_np = np.array(Image.open(cn_mask_frame_path).convert("RGB")).astype('uint8')
 
             if os.path.exists(cn_frame_path):
                 cn_image_np = np.array(Image.open(cn_frame_path).convert("RGB")).astype('uint8')
 
-            if os.path.exists(cn_mask_frame_path):
-                cn_mask_np = np.array(Image.open(cn_mask_frame_path).convert("RGB")).astype('uint8')
         return cn_mask_np, cn_image_np
 
+
     cnet = find_controlnet()
-    cn_data = [read_cn_data(i) for i in range(1, num_of_models+1)]
     cn_inputframes_list = [os.path.join(args.outdir, f'controlnet_{i}_inputframes') for i in range(1, num_of_models+1)]
+
+    # image_file_path = None
+    # if cn_inputframes_list:
+        # frame_files = os.listdir(cn_inputframes_list[0])
+        # if frame_files:
+            # image_file_path = os.path.join(cn_inputframes_list[0], frame_files[0])
+            # is_single_image = is_image_file(image_file_path)
+    # cn_data = [read_cn_data(i, image_file_path) for i in range(1, num_of_models+1)]
+    cn_data = [read_cn_data(i, frame_idx) for i in range(1, num_of_models+1)]
 
     if not any(os.path.exists(cn_inputframes) for cn_inputframes in cn_inputframes_list):
         print(f'\033[33mNeither the base nor the masking frames for ControlNet were found. Using the regular pipeline\033[0m')
@@ -191,22 +231,32 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
     p.script_args = {"enabled": True} 
     cnet.update_cn_script_in_processing(p, cn_units, is_img2img=is_img2img, is_ui=False)
 
-def process_controlnet_video(args, anim_args, controlnet_args, video_path, mask_path, outdir_suffix, id):
+def is_image_file(file_path):
+    _, ext = os.path.splitext(file_path)
+    return ext.lower() in ['.png', '.jpg', '.jpeg']
+
+def process_controlnet_video(args, anim_args, controlnet_args, video_path, mask_path, outdir_suffix, id, is_single_image=False):
     if (video_path or mask_path) and getattr(controlnet_args, f'cn_{id}_enabled'):
         print(f'Unpacking ControlNet {id} {"video mask" if mask_path else "base video"}')
         frame_path = os.path.join(args.outdir, f'controlnet_{id}_{outdir_suffix}')
         os.makedirs(frame_path, exist_ok=True)
 
-        print(f"Exporting Video Frames (1 every {anim_args.extract_nth_frame}) frames to {frame_path}...")
-        vid2frames(
-            video_path=video_path or mask_path,
-            video_in_frame_path=frame_path,
-            n=anim_args.extract_nth_frame,
-            overwrite=getattr(controlnet_args, f'cn_{id}_overwrite_frames'),
-            extract_from_frame=anim_args.extract_from_frame,
-            extract_to_frame=anim_args.extract_to_frame,
-            numeric_files_output=True
-        )
+        if not is_single_image:
+            print(f"Exporting Video Frames (1 every {anim_args.extract_nth_frame}) frames to {frame_path}...")
+            vid2frames(
+                video_path=video_path or mask_path,
+                video_in_frame_path=frame_path,
+                n=anim_args.extract_nth_frame,
+                overwrite=getattr(controlnet_args, f'cn_{id}_overwrite_frames'),
+                extract_from_frame=anim_args.extract_from_frame,
+                extract_to_frame=anim_args.extract_to_frame,
+                numeric_files_output=True
+            )
+        else:
+            src_path = video_path or mask_path
+            dst_path = os.path.join(frame_path, f"{1:09}.jpg")
+            shutil.copy(src_path, dst_path)
+
         print(f"Loading {anim_args.max_frames} input frames from {frame_path} and saving video frames to {args.outdir}")
         print(f'ControlNet {id} {"video mask" if mask_path else "base video"} unpacked!')
 
@@ -224,21 +274,26 @@ def unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, 
         if mask_chosen_file is not None:
             mask_name = getattr(getattr(controlnet_args, f'cn_{i}_input_video_mask_chosen_file'), 'name', None)
 
+        is_single_image = is_image_file(vid_path or vid_name) if vid_path or vid_name else False
+
         process_controlnet_video( # Process base video
             args, anim_args, controlnet_args,
             vid_path or vid_name,
             None,
             'inputframes',
-            i
+            i,
+            is_single_image=is_single_image
         )
 
         if mask_name: # Process mask video, if available
+            is_single_image_mask = is_image_file(mask_path or mask_name) if mask_path or mask_name else False
             process_controlnet_video(
                 args, anim_args, controlnet_args,
                 None,
                 mask_path or mask_name,
                 'maskframes',
-                i
+                i,
+                is_single_image=is_single_image_mask
             )
 
 def hide_ui_by_cn_status(choice):
