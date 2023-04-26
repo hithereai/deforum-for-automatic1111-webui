@@ -209,27 +209,17 @@ def process_controlnet_video(args, anim_args, controlnet_args, video_path, mask_
 
 
 def unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
-    # this func gets called from render.py once for an entire animation run
+    # this func gets called from render.py once for an entire animation run -->
+    # tries to trigger an extraction of CN input frames (regular + masks) from video or image
     for i in range(1, num_of_models+1):
         vid_path = getattr(controlnet_args, f'cn_{i}_vid_path', None)
         mask_path = getattr(controlnet_args, f'cn_{i}_mask_vid_path', None)
-
-        process_controlnet_video( # Process base video
-            args, anim_args, controlnet_args,
-            vid_path,
-            None,
-            'inputframes',
-            i
-        )
-
+        
+        if vid_path: # Process base video
+            process_controlnet_video(args, anim_args, controlnet_args, vid_path, None, 'inputframes', i)
+        
         if mask_path: # Process mask video, if available
-            process_controlnet_video(
-                args, anim_args, controlnet_args,
-                None,
-                mask_path,
-                'maskframes',
-                i
-            )
+            process_controlnet_video(args, anim_args, controlnet_args, None, mask_path, 'maskframes', i)
 
 def hide_ui_by_cn_status(choice):
     return gr.update(visible=True) if choice else gr.update(visible=False)
