@@ -194,7 +194,7 @@ def process_controlnet_video(args, anim_args, controlnet_args, video_path, mask_
         frame_path = os.path.join(args.outdir, f'controlnet_{id}_{outdir_suffix}')
         os.makedirs(frame_path, exist_ok=True)
 
-        print(f"Exporting Video Frames (1 every {anim_args.extract_nth_frame}) frames to {frame_path}...")
+        print(f"Exporting Video Frames to {frame_path}...")
         vid2frames(
             video_path=video_path or mask_path,
             video_in_frame_path=frame_path,
