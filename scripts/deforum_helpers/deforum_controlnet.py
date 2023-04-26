@@ -188,13 +188,13 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
     p.script_args = {"enabled": True} 
     cnet.update_cn_script_in_processing(p, cn_units, is_img2img=is_img2img, is_ui=False)
 
-def process_controlnet_video(args, anim_args, controlnet_args, video_path, mask_path, outdir_suffix, id):
+def process_controlnet_input_frames(args, anim_args, controlnet_args, video_path, mask_path, outdir_suffix, id):
     if (video_path or mask_path) and getattr(controlnet_args, f'cn_{id}_enabled'):
         print(f'Unpacking ControlNet {id} {"video mask" if mask_path else "base video"}')
         frame_path = os.path.join(args.outdir, f'controlnet_{id}_{outdir_suffix}')
         os.makedirs(frame_path, exist_ok=True)
 
-        print(f"Exporting Video Frames to {frame_path}...")
+        print(f"Exporting Video Frames to {frame_path}...") # future todo, add an if for vid input mode to show actual extract nth param
         vid2frames(
             video_path=video_path or mask_path,
             video_in_frame_path=frame_path,
@@ -216,10 +216,10 @@ def unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, 
         mask_path = getattr(controlnet_args, f'cn_{i}_mask_vid_path', None)
         
         if vid_path: # Process base video
-            process_controlnet_video(args, anim_args, controlnet_args, vid_path, None, 'inputframes', i)
+            process_controlnet_input_frames(args, anim_args, controlnet_args, vid_path, None, 'inputframes', i)
         
         if mask_path: # Process mask video, if available
-            process_controlnet_video(args, anim_args, controlnet_args, None, mask_path, 'maskframes', i)
+            process_controlnet_input_frames(args, anim_args, controlnet_args, None, mask_path, 'maskframes', i)
 
 def hide_ui_by_cn_status(choice):
     return gr.update(visible=True) if choice else gr.update(visible=False)
