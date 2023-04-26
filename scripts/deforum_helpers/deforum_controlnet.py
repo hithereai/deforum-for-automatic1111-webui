@@ -37,6 +37,17 @@ def find_controlnet():
         print(f"\033[0;32m*Deforum ControlNet support: enabled*\033[0m")
         return True
     return None
+    
+def controlnet_infotext():
+    return """Requires the <a style='color:SteelBlue;' target='_blank' href='https://github.com/Mikubill/sd-webui-controlnet'>ControlNet</a> extension to be installed.</p>
+            <p">If Deforum crashes due to CN updates, go <a style='color:Orange;' target='_blank' href='https://github.com/Mikubill/sd-webui-controlnet/issues'>here</a> and report your problem.</p>
+           """
+   
+def is_controlnet_enabled(controlnet_args):
+    for i in range(1, num_of_models+1):
+        if getattr(controlnet_args, f'cn_{i}_enabled', False):
+            return True
+    return False
 
 def setup_controlnet_ui_raw():
     cnet = find_controlnet()
@@ -132,17 +143,6 @@ def controlnet_component_names():
         'module', 'model', 'weight', 'guidance_start', 'guidance_end',
         'processor_res', 'threshold_a', 'threshold_b', 'resize_mode', 'control_mode'
     ]]
-
-def controlnet_infotext():
-    return """Requires the <a style='color:SteelBlue;' target='_blank' href='https://github.com/Mikubill/sd-webui-controlnet'>ControlNet</a> extension to be installed.</p>
-            <p">If Deforum crashes due to CN updates, go <a style='color:Orange;' target='_blank' href='https://github.com/Mikubill/sd-webui-controlnet/issues'>here</a> and report your problem.</p>
-           """
-   
-def is_controlnet_enabled(controlnet_args):
-    for i in range(1, num_of_models+1):
-        if getattr(controlnet_args, f'cn_{i}_enabled', False):
-            return True
-    return False
     
 def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root, is_img2img=True, frame_idx=1):
     def read_cn_data(cn_idx):
@@ -227,6 +227,3 @@ def unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, 
         
         if mask_path: # Process mask video, if available
             process_controlnet_input_frames(args, anim_args, controlnet_args, None, mask_path, 'maskframes', i)
-
-def hide_ui_by_cn_status(choice):
-    return gr.update(visible=True) if choice else gr.update(visible=False)
