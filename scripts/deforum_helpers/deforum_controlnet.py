@@ -15,7 +15,7 @@ from rich import box
 from modules import scripts
 from modules.shared import opts
 from .deforum_controlnet_gradio import *
-from .video_audio_utilities import vid2frames
+from .video_audio_utilities import vid2frames, convert_image
 
 # DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
@@ -137,7 +137,15 @@ def controlnet_infotext():
     return """Requires the <a style='color:SteelBlue;' target='_blank' href='https://github.com/Mikubill/sd-webui-controlnet'>ControlNet</a> extension to be installed.</p>
             <p">If Deforum crashes due to CN updates, go <a style='color:Orange;' target='_blank' href='https://github.com/Mikubill/sd-webui-controlnet/issues'>here</a> and report your problem.</p>
            """
-           
+        
+
+
+def count_files_in_folder(folder_path):
+    import glob
+    file_pattern = folder_path + "/*"
+    file_count = len(glob.glob(file_pattern))
+    return file_count
+    
 def is_controlnet_enabled(controlnet_args):
     for i in range(1, num_of_models+1):
         if getattr(controlnet_args, f'cn_{i}_enabled', False):
@@ -147,17 +155,19 @@ def is_controlnet_enabled(controlnet_args):
 def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root, is_img2img=True, frame_idx=1):
     def read_cn_data(cn_idx):
         cn_mask_np, cn_image_np = None, None
-        cn_inputframes = os.path.join(args.outdir, f'controlnet_{cn_idx}_inputframes')
+        cn_inputframes = os.path.join(args.outdir, f'controlnet_{cn_idx}_inputframes') # set input frames folder path
         if os.path.exists(cn_inputframes):
-            cn_frame_path = os.path.join(cn_inputframes, f"{frame_idx:09}.jpg")
-            cn_mask_frame_path = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes', f"{frame_idx:09}.jpg")
-
-            print(f'Reading ControlNet {cn_idx} base frame {frame_idx} at {cn_frame_path}')
-            print(f'Reading ControlNet {cn_idx} mask frame {frame_idx} at {cn_mask_frame_path}')
-
+            if count_files_in_folder(cn_inputframes) == 1:
+                cn_frame_path = os.path.join(cn_inputframes, "000000001.jpg")
+                print(f'Reading ControlNet *static* base frame at {cn_frame_path}')
+            else:
+                cn_frame_path = os.path.join(cn_inputframes, f"{frame_idx:09}.jpg")
+                print(f'Reading ControlNet {cn_idx} base frame #{frame_idx} at {cn_frame_path}')
             if os.path.exists(cn_frame_path):
                 cn_image_np = np.array(Image.open(cn_frame_path).convert("RGB")).astype('uint8')
-
+        cn_maskframes = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes') # set mask frames folder path        
+        if os.path.exists(cn_maskframes):
+            cn_mask_frame_path = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes', f"{frame_idx:09}.jpg")
             if os.path.exists(cn_mask_frame_path):
                 cn_mask_np = np.array(Image.open(cn_mask_frame_path).convert("RGB")).astype('uint8')
         return cn_mask_np, cn_image_np
@@ -190,23 +200,28 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
 
 def process_controlnet_input_frames(args, anim_args, controlnet_args, video_path, mask_path, outdir_suffix, id):
     if (video_path or mask_path) and getattr(controlnet_args, f'cn_{id}_enabled'):
-        print(f'Unpacking ControlNet {id} {"video mask" if mask_path else "base video"}')
         frame_path = os.path.join(args.outdir, f'controlnet_{id}_{outdir_suffix}')
         os.makedirs(frame_path, exist_ok=True)
-
-        print(f"Exporting Video Frames to {frame_path}...") # future todo, add an if for vid input mode to show actual extract nth param
-        vid2frames(
-            video_path=video_path or mask_path,
-            video_in_frame_path=frame_path,
-            n=1 if anim_args.animation_mode != 'Video Input' else anim_args.extract_nth_frame,
-            overwrite=getattr(controlnet_args, f'cn_{id}_overwrite_frames'),
-            extract_from_frame=0 if anim_args.animation_mode != 'Video Input' else anim_args.extract_from_frame,
-            extract_to_frame=(anim_args.max_frames-1) if anim_args.animation_mode != 'Video Input' else anim_args.extract_to_frame,
-            numeric_files_output=True
-        )
-        print(f"Loading {anim_args.max_frames} input frames from {frame_path} and saving video frames to {args.outdir}")
-        print(f'ControlNet {id} {"video mask" if mask_path else "base video"} unpacked!')
-
+        
+        # TODO: handle masks too
+        accepted_image_extensions = ('.jpg', '.jpeg', '.png', '.bmp')
+        if video_path.lower().endswith(accepted_image_extensions):
+            convert_image(video_path, os.path.join(frame_path, '000000001.jpg'))
+            print(f"Copied CN Model {id}'s single input image to inputframes folder!")
+        else:
+            print(f'Unpacking ControlNet {id} {"video mask" if mask_path else "base video"}')
+            print(f"Exporting Video Frames to {frame_path}...") # future todo, add an if for vid input mode to show actual extract nth param
+            vid2frames(
+                video_path=video_path or mask_path,
+                video_in_frame_path=frame_path,
+                n=1 if anim_args.animation_mode != 'Video Input' else anim_args.extract_nth_frame,
+                overwrite=getattr(controlnet_args, f'cn_{id}_overwrite_frames'),
+                extract_from_frame=0 if anim_args.animation_mode != 'Video Input' else anim_args.extract_from_frame,
+                extract_to_frame=(anim_args.max_frames-1) if anim_args.animation_mode != 'Video Input' else anim_args.extract_to_frame,
+                numeric_files_output=True
+            )
+            print(f"Loading {anim_args.max_frames} input frames from {frame_path} and saving video frames to {args.outdir}")
+            print(f'ControlNet {id} {"video mask" if mask_path else "base video"} unpacked!')
 
 def unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
     # this func gets called from render.py once for an entire animation run -->
