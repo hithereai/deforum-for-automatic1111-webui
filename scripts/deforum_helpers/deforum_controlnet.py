@@ -15,12 +15,13 @@ from rich import box
 from modules import scripts
 from modules.shared import opts
 from .deforum_controlnet_gradio import *
+from .general_utils import count_files_in_folder # TODO: do it another way
 from .video_audio_utilities import vid2frames, convert_image
 
 # DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
 cnet = None
-# number of CN model tabs to show in the deforum gui. *if adding more, make sure to update cn_models param in get_keys_to_exclude in settings.py*
+# number of CN model tabs to show in the deforum gui
 num_of_models = 5
 
 def find_controlnet():
@@ -137,15 +138,7 @@ def controlnet_infotext():
     return """Requires the <a style='color:SteelBlue;' target='_blank' href='https://github.com/Mikubill/sd-webui-controlnet'>ControlNet</a> extension to be installed.</p>
             <p">If Deforum crashes due to CN updates, go <a style='color:Orange;' target='_blank' href='https://github.com/Mikubill/sd-webui-controlnet/issues'>here</a> and report your problem.</p>
            """
-        
-
-
-def count_files_in_folder(folder_path):
-    import glob
-    file_pattern = folder_path + "/*"
-    file_count = len(glob.glob(file_pattern))
-    return file_count
-    
+   
 def is_controlnet_enabled(controlnet_args):
     for i in range(1, num_of_models+1):
         if getattr(controlnet_args, f'cn_{i}_enabled', False):
