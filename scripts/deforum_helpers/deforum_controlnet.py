@@ -80,14 +80,14 @@ def setup_controlnet_ui_raw():
             threshold_a =  gr.Slider(label="Threshold A", value=64, minimum=64, maximum=1024, interactive=False)
             threshold_b =  gr.Slider(label="Threshold B", value=64, minimum=64, maximum=1024, interactive=False)
         with gr.Row(visible=False) as vid_path_row:
-            vid_path = gr.Textbox(value='', label="ControlNet Input Video Path", interactive=True)
-        with gr.Row(visible=False) as mask_vid_path_row:
-            mask_vid_path = gr.Textbox(value='', label="ControlNet Mask Video Path", interactive=True)
+            vid_path = gr.Textbox(value='', label="ControlNet Input Video/ Image Path", interactive=True)
+        with gr.Row(visible=False) as mask_vid_path_row: # invisible temporarily since 26-04-23 until masks are fixed
+            mask_vid_path = gr.Textbox(value='', label="ControlNet Mask Video/ Image Path", interactive=True)
         with gr.Row(visible=False) as control_mode_row:
             control_mode = gr.Radio(choices=["Balanced", "My prompt is more important", "ControlNet is more important"], value="Balanced", label="Control Mode", interactive=True)            
         with gr.Row(visible=False) as env_row:
             resize_mode = gr.Radio(choices=["Outer Fit (Shrink to Fit)", "Inner Fit (Scale to Fit)", "Just Resize"], value="Inner Fit (Scale to Fit)", label="Resize Mode", interactive=True)
-        hide_output_list = [pixel_perfect,low_vram,mod_row,module,weight_row,env_row,overwrite_frames,vid_path_row,mask_vid_path_row,control_mode_row] 
+        hide_output_list = [pixel_perfect,low_vram,mod_row,module,weight_row,env_row,overwrite_frames,vid_path_row,control_mode_row] # add mask_vid_path_row when masks are working again
         for cn_output in hide_output_list:
             enabled.change(fn=hide_ui_by_cn_status, inputs=enabled,outputs=cn_output)
         module.change(build_sliders, inputs=[module, pixel_perfect], outputs=[processor_res, threshold_a, threshold_b, advanced_column])
