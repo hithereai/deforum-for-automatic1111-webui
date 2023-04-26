@@ -201,7 +201,7 @@ def process_controlnet_video(args, anim_args, controlnet_args, video_path, mask_
             n=anim_args.extract_nth_frame,
             overwrite=getattr(controlnet_args, f'cn_{id}_overwrite_frames'),
             extract_from_frame=anim_args.extract_from_frame,
-            extract_to_frame=anim_args.extract_to_frame,
+            extract_to_frame=(anim_args.max_frames-1) if anim_args.animation_mode != 'Video Input' else anim_args.extract_to_frame,
             numeric_files_output=True
         )
         print(f"Loading {anim_args.max_frames} input frames from {frame_path} and saving video frames to {args.outdir}")
