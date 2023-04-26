@@ -25,14 +25,12 @@ def convert_image(input_path, output_path):
     if out_ext == ".png":
         cv2.imwrite(output_path, img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
     elif out_ext == ".jpg" or out_ext == ".jpeg":
-        cv2.imwrite(output_path, img, [cv2.IMWRITE_JPEG_QUALITY, 90])
+        cv2.imwrite(output_path, img, [cv2.IMWRITE_JPEG_QUALITY, 99])
     elif out_ext == ".bmp":
         cv2.imwrite(output_path, img)
     else:
         print(f"Unsupported output format: {out_ext}")
-        return
-        
-        print(f"{input_path} converted to {output_path}")
+
 def get_ffmpeg_params(): # get ffmpeg params from webui's settings -> deforum tab. actual opts are set in deforum.py
     f_location = opts.data.get("deforum_ffmpeg_location", find_ffmpeg_binary())
     f_crf = opts.data.get("deforum_ffmpeg_crf", 17)
