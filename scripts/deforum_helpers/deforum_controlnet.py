@@ -64,6 +64,7 @@ def setup_controlnet_ui_raw():
             enabled = gr.Checkbox(label="Enable", value=False, interactive=True)
             pixel_perfect = gr.Checkbox(label="Pixel Perfect", value=False, visible=False, interactive=True)
             low_vram = gr.Checkbox(label="Low VRAM", value=False, visible=False, interactive=True)
+            overwrite_frames = gr.Checkbox(label='Overwrite input frames', value=True, visible=False, interactive=True)
         with gr.Row(visible=False) as mod_row:
             module = gr.Dropdown(cn_preprocessors, label=f"Preprocessor", value="none", interactive=True)
             model = gr.Dropdown(cn_models, label=f"Model", value="None", interactive=True)
@@ -78,15 +79,15 @@ def setup_controlnet_ui_raw():
             processor_res = gr.Slider(label="Annotator resolution", value=64, minimum=64, maximum=2048, interactive=False)
             threshold_a =  gr.Slider(label="Threshold A", value=64, minimum=64, maximum=1024, interactive=False)
             threshold_b =  gr.Slider(label="Threshold B", value=64, minimum=64, maximum=1024, interactive=False)
+        with gr.Row(visible=False) as vid_path_row:
+            vid_path = gr.Textbox(value='', label="ControlNet Input Video Path", interactive=True)
+        with gr.Row(visible=False) as mask_vid_path_row:
+            mask_vid_path = gr.Textbox(value='', label="ControlNet Mask Video Path", interactive=True)
         with gr.Row(visible=False) as control_mode_row:
             control_mode = gr.Radio(choices=["Balanced", "My prompt is more important", "ControlNet is more important"], value="Balanced", label="Control Mode", interactive=True)            
         with gr.Row(visible=False) as env_row:
             resize_mode = gr.Radio(choices=["Outer Fit (Shrink to Fit)", "Inner Fit (Scale to Fit)", "Just Resize"], value="Inner Fit (Scale to Fit)", label="Resize Mode", interactive=True)
-        with gr.Row(visible=False) as vid_settings_row:
-            overwrite_frames = gr.Checkbox(label='Overwrite input frames', value=True, interactive=True)
-            vid_path = gr.Textbox(value='', label="ControlNet Input Video Path", interactive=True)
-            mask_vid_path = gr.Textbox(value='', label="ControlNet Mask Video Path", interactive=True)
-        hide_output_list = [pixel_perfect,low_vram,mod_row,module,weight_row,env_row,vid_settings_row, advanced_column, control_mode_row] 
+        hide_output_list = [pixel_perfect,low_vram,mod_row,module,weight_row,env_row,overwrite_frames,vid_path_row,mask_vid_path_row,advanced_column,control_mode_row] 
         for cn_output in hide_output_list:
             enabled.change(fn=hide_ui_by_cn_status, inputs=enabled,outputs=cn_output)
         module.change(build_sliders, inputs=[module, pixel_perfect], outputs=[processor_res, threshold_a, threshold_b, advanced_column])
