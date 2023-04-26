@@ -16,6 +16,111 @@ from modules import lowvram, devices
 from modules.shared import opts
 from .ZoeDepth import ZoeDepth
 from torchvision.transforms import Compose
+import matplotlib.pylab as plt
+
+
+def plot_curves(data_list, savepath, title = "", xlim = None, ylim = None):
+    os.makedirs(os.path.join('', os.path.dirname(savepath)), exist_ok = True)
+
+    plt.figure()
+    for data in data_list:
+        plt.plot(data)
+        plt.plot(data)
+    if title != "":
+        plt.title(title)
+
+    if xlim is not None:
+        plt.xlim([xlim[0], xlim[1]])
+    if ylim is not None:
+        plt.ylim([ylim[0], ylim[1]])
+        
+    plt.savefig(os.path.join('', savepath + ".jpg"))
+    plt.clf()
+
+from collections import deque
+
+class DepthStabilizer():
+    """Tracks and stabilizes depth maps
+    """
+    def __init__(self, fps = 16):
+        depth_map_smoothing_seconds   = 0.5
+        depth_range_smoothing_seconds = 6
+
+        self.map_que_len    = max(2, int(fps*depth_map_smoothing_seconds))
+        self.map_que_len    = 1
+
+        self.range_que_len  = max(2, int(fps*depth_range_smoothing_seconds))
+
+        self.map_weights    = np.linspace(0.0, 1.0, num=self.map_que_len)**1.5
+        self.map_weights    = self.map_weights / np.sum(self.map_weights)
+
+        self.range_weights  = np.linspace(0.0, 1.0, num=self.range_que_len)**1.5
+        self.range_weights  = self.range_weights / np.sum(self.range_weights)
+
+        plot_curves([self.map_weights],   "depth/smoothing_weights_map",   title = "depth map smoothing weights")
+        plot_curves([self.range_weights], "depth/smoothing_weights_range", title = "depth range smoothing weights")
+        plot_curves([self.range_weights, self.map_weights], "depth/smoothing_weights_combined", title = "depth range smoothing weights")
+
+        self.map_weights    = torch.from_numpy(self.map_weights).to('cpu')
+        self.range_weights  = torch.from_numpy(self.range_weights).to('cpu')
+
+        self.depth_maps = deque([], self.map_que_len)
+
+        self.depth_mins = []
+        self.depth_maxs = []
+        self.depth_mins_smoothed = []
+        self.depth_maxs_smoothed = []
+
+    def moving_average(self, depth_tensor):
+        self.depth_maps.append(depth_tensor)
+        self.depth_mins.append(depth_tensor.min().item())
+        self.depth_maxs.append(depth_tensor.max().item())
+
+        if len(self.depth_maps) > 1: #Use weighted moving average of past depth maps:
+            while(True): # ugly hack when generating multiple videos with different aspect ratios 
+                try:
+                    dtensors = torch.stack(list(self.depth_maps))
+                    break
+                except:
+                    del self.depth_maps[0]
+
+            weights = self.map_weights[-len(self.depth_maps):]
+            weights = weights / weights.sum()
+
+            dtensors = torch.stack(list(self.depth_maps))
+            dtensors = dtensors * weights[:, None, None].to(depth_tensor.device)
+            depth_tensor  = dtensors.sum(0).squeeze()
+
+        # Adjust min/max range of final depth map based on moving average:
+        smooth_steps = min(len(self.depth_mins), self.range_que_len)
+        weights      = self.range_weights[-smooth_steps:]
+        weights      = weights / weights.sum()
+        past_min_depth_values = self.depth_mins[-smooth_steps:]
+        past_max_depth_values = self.depth_maxs[-smooth_steps:]
+        
+        smoothed_min_depth = np.sum([past_min_depth_values[i]*weights[i] for i in range(smooth_steps)])
+        smoothed_max_depth = np.sum([past_max_depth_values[i]*weights[i] for i in range(smooth_steps)])
+
+        depth_tensor = adjust_range(depth_tensor, [smoothed_min_depth, smoothed_max_depth])
+
+        self.depth_mins_smoothed.append(smoothed_min_depth)
+        self.depth_maxs_smoothed.append(smoothed_max_depth)
+
+        plot_curves([self.depth_mins, self.depth_maxs], "depth/min_max_depth_raw", title = "min and max raw depth values", ylim = [0, 1.05 * np.max(self.depth_maxs)])
+        plot_curves([self.depth_mins_smoothed, self.depth_maxs_smoothed], "depth/min_max_depth_smoothed", title = "min and max smoothed depth values", ylim = [0, 1.05 * np.max(self.depth_maxs)])
+
+        return depth_tensor
+
+    def warp_previous_depth_maps(self, offset_coords_2d):
+        for i, depth_map in enumerate(self.depth_maps):
+            depth_map = depth_map.unsqueeze(0).unsqueeze(0)
+            self.depth_maps[i] = torch.nn.functional.grid_sample(depth_map, offset_coords_2d, mode="bicubic", padding_mode="border", align_corners=True).squeeze()
+
+    def dump_info(self):
+        return
+
+depth_tracker = DepthStabilizer(fps = 15)
+
 
 def normalize(img, input_range = None):
     if input_range is None:
@@ -49,7 +154,7 @@ def plot_hist(values, img_path, width=0, height=0, title = '', nbins = 30, xlim 
             plt.axvline(height, color='k', linestyle='dashed', linewidth=1)
             plt.axvline(np.mean(values), color='r', linestyle='dashed', linewidth=1)
 
-        plt.savefig(os.path.join(cfg.output_dir, img_path))
+        plt.savefig(os.path.join('', img_path))
         plt.clf()
         plt.close(fig)
     except:
@@ -146,8 +251,6 @@ def postprocess_depth(depth_map, minv, maxv, near, far, equalization_f = 0.1, pe
     if invert:
         depth_map = 1 - depth_map
 
-    #depth_map = load_depthmap(depth_map)
-
     if equalization_f > 0.0: # Histogram equalization:
         depth_map_eq = TF.equalize((depth_map * 255.).to(torch.uint8)).float() / 255.
         depth_map    = (1-equalization_f)*depth_map + equalization_f*depth_map_eq
@@ -160,8 +263,6 @@ def postprocess_depth(depth_map, minv, maxv, near, far, equalization_f = 0.1, pe
     max_depth_fraction = (1-range_rescaling_f)*max_depth_fraction + range_rescaling_f*0.95
     min_depth_fraction = (1-range_rescaling_f)*min_depth_fraction + range_rescaling_f*0.05
 
-    #max_depth_fraction = torch.clip(max_depth_fraction, 0.50, 1.00)
-    #min_depth_fraction = torch.clip(min_depth_fraction, 0.00, 0.25)
     depth_map          = adjust_range(depth_map, [min_depth_fraction, max_depth_fraction])
 
     if plot:
@@ -245,10 +346,10 @@ class MidasModel:
             sample = sample.to(memory_format=torch.channels_last)  
             sample = sample.half()
 
-        depth_map = model.forward(sample)
+        depth_map = self.midas_model.forward(sample)
 
         if flip_dir != 0 and (orig_f != 1):
-            depth_map_secondary = torch.flip(model.forward(torch.flip(sample, [flip_dir])), [flip_dir-1])
+            depth_map_secondary = torch.flip(self.midas_model.forward(torch.flip(sample, [flip_dir])), [flip_dir-1])
             depth_map = orig_f * depth_map + (1-orig_f) * depth_map_secondary
 
         depth_map = torch.nn.functional.interpolate(
@@ -258,8 +359,7 @@ class MidasModel:
                 align_corners=True)
 
         return depth_map
-        
-    
+
         
     def predict(self, prev_img_cv2, half_precision) -> torch.Tensor:
         DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
@@ -272,72 +372,38 @@ class MidasModel:
             # depth_tensor = depth_tensor / 51.81818181818182
 
         else:
+            near, far = 200, 20000
+            px = 2/min(self.Height, self.Width)
             w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
-
-            img_midas = prev_img_cv2.astype(np.float32) / 255.0
+            img_midas = prev_img_cv2.astype(np.float32) / 255
             img_midas_input = self.midas_transform({"image": img_midas})["image"]
             sample = torch.from_numpy(img_midas_input).float().to(self.device).unsqueeze(0)
-            
-            raw_midas_depth = midas_inference(input_pt_img, optimize=True, orig_size)
-            
-            
-            
-            if self.device.type == "cuda" or self.device.type == "mps":
-                sample = sample.to(memory_format=torch.channels_last)
-                if half_precision:
-                    sample = sample.half()
-
             with torch.no_grad():
-                midas_depth = self.midas_model.forward(sample)
-            midas_depth = torch.nn.functional.interpolate(
-                midas_depth.unsqueeze(1),
-                size=img_midas.shape[:2],
-                mode="bicubic",
-                align_corners=False,
-            ).squeeze().cpu().numpy()
-            
-            if DEBUG_MODE:
-                print("Midas depth tensor before 50/19 calculation:")
-                print(torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze())
+                raw_midas_depth = self.midas_inference(sample, True, 512)
+            depth_tensor = postprocess_depth(raw_midas_depth.clone().detach(), -1.5, 100, near*px, far*px, invert=False)
+            depth_tensor = depth_tracker.moving_average(depth_tensor)
 
-            torch.cuda.empty_cache()
-            
-            near = 1000
-            far = 100000
-            px = 2/min(self.Height, self.Width)
-            
-            
-            raw_midas_depth = midas_inference(input_pt_img, optimize=True, orig_size)
-            
-            raw_depth    = midas_depth
-            raw_depth_tensor = torch.from_numpy(np.expand_dims(raw_depth, axis=0)).squeeze().to(self.device)
-            print(raw_depth_tensor)
-            depth_tensor_1 = postprocess_depth(raw_depth_tensor.clone().detach(), -1.5, 100, near*px, far*px, invert=True)
-            print(depth_tensor_1)
-           
-            depth_tensor = torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze().to(self.device)
         
         if DEBUG_MODE:
             print("Shape of depth_tensor:", depth_tensor.shape)
             print("Tensor data:")
             print(depth_tensor)
 
-        w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
 
         return depth_tensor
 
-    def to_image(self, depth: torch.Tensor):
-        depth = depth.cpu().numpy()
-        depth = np.expand_dims(depth, axis=0) if len(depth.shape) == 2 else depth
-        self.depth_min = min(self.depth_min, depth.min())
-        self.depth_max = max(self.depth_max, depth.max())
-        denom = max(1e-8, self.depth_max - self.depth_min)
-        temp = rearrange((depth - self.depth_min) / denom * 255, 'c h w -> h w c')
-        temp = repeat(temp, 'h w 1 -> h w c', c=3)
-        return Image.fromarray(temp.astype(np.uint8))
+    # def to_image(self, depth: torch.Tensor):
+        # depth = depth.cpu().numpy()
+        # depth = np.expand_dims(depth, axis=0) if len(depth.shape) == 2 else depth
+        # self.depth_min = min(self.depth_min, depth.min())
+        # self.depth_max = max(self.depth_max, depth.max())
+        # denom = max(1e-8, self.depth_max - self.depth_min)
+        # temp = rearrange((depth - self.depth_min) / denom * 255, 'c h w -> h w c')
+        # temp = repeat(temp, 'h w 1 -> h w c', c=3)
+        # return Image.fromarray(temp.astype(np.uint8))
 
-    def save(self, filename: str, depth: torch.Tensor):
-        self.to_image(depth).save(filename)
+    # def save(self, filename: str, depth: torch.Tensor):
+        # self.to_image(depth).save(filename)
 
     def to(self, device):
         self.device = device
