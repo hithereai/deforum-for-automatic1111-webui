@@ -120,7 +120,6 @@ def DeforumAnimArgs():
     #**3D Depth Warping:**
     use_depth_warping = True 
     use_zoe_depth = False
-    midas_weight = 0.2 
     padding_mode = 'border' # ['border', 'reflection', 'zeros'] 
     sampling_mode = 'bicubic' # ['bicubic', 'bilinear', 'nearest']
     save_depth_maps = False 
@@ -521,7 +520,6 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                                 with gr.Row(variant='compact'):
                                     use_depth_warping = gr.Checkbox(label="Use depth warping", value=da.use_depth_warping, interactive=True)
                                     use_zoe_depth = gr.Checkbox(label="Use ZoeDepth", value=da.use_zoe_depth, interactive=True, info="*experimental*. a new 3d-depth model. provides better results at the cost of more gpu vram and inference speed")
-                                    midas_weight = gr.Number(label="MiDaS weight", value=da.midas_weight, interactive=True, info="sets a midpoint at which a depthmap is to be drawn: range [-1 to +1]")
                                 with gr.Row(variant='compact'):
                                     padding_mode = gr.Radio(['border', 'reflection', 'zeros'], label="Padding mode", value=da.padding_mode, elem_id="padding_mode", info="controls the handling of pixels outside the field of view as they come into the scene. hover on the options for more info")
                                     sampling_mode = gr.Radio(['bicubic', 'bilinear', 'nearest'], label="Sampling mode", value=da.sampling_mode, elem_id="sampling_mode")
@@ -921,7 +919,6 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         invert = gr.Checkbox(label='Closer is brighter', value=True, elem_id="invert")
                     with gr.Row(variant='compact'):
                         end_blur = gr.Slider(label="End blur width", value=0, minimum=0, maximum=255, step=1)
-                        midas_weight_vid2depth = gr.Slider(label="MiDaS weight (vid2depth)", value=da.midas_weight, minimum=0, maximum=1, step=0.05, interactive=True, info="sets a midpoint at which a depthmap is to be drawn: range [-1 to +1]")
                         depth_keep_imgs = gr.Checkbox(label='Keep Imgs', value=True, elem_id="depth_keep_imgs")
                     with gr.Row(variant='compact'):
                         # This is the actual button that's pressed to initiate the Upscaling:
@@ -930,7 +927,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         # Show a text about CLI outputs:
                         gr.HTML("* check your CLI for outputs")
                         # make the function call when the UPSCALE button is clicked
-                    depth_btn.click(upload_vid_to_depth,inputs=[vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, depth_keep_imgs])
+                    depth_btn.click(upload_vid_to_depth,inputs=[vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, depth_keep_imgs])
                 # STITCH FRAMES TO VID TAB
                 with gr.TabItem('Frames to Video') as stitch_imgs_to_vid_row:
                     with gr.Row(visible=False):
@@ -1056,7 +1053,7 @@ anim_args_names =   str(r'''animation_mode, max_frames, border,
                         diffusion_cadence, optical_flow_cadence, cadence_flow_factor_schedule,
                         optical_flow_redo_generation, redo_flow_factor_schedule, diffusion_redo,
                         noise_type, perlin_w, perlin_h, perlin_octaves, perlin_persistence,
-                        use_depth_warping, use_zoe_depth ,midas_weight,
+                        use_depth_warping, use_zoe_depth,
                         padding_mode, sampling_mode, save_depth_maps,
                         video_init_path, extract_nth_frame, extract_from_frame, extract_to_frame, overwrite_extracted_frames,
                         use_mask_video, video_mask_path,
@@ -1256,7 +1253,7 @@ def upload_pics_to_interpolate(pic_list, engine, x_am, sl_enabled, sl_am, keep_i
     
     process_interp_pics_upload_logic(pic_list, engine, x_am, sl_enabled, sl_am, keep_imgs, f_location, f_crf, f_preset, fps, f_models_path, resolution, add_audio, audio_track)
 
-def upload_vid_to_depth(vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, depth_keep_imgs):
+def upload_vid_to_depth(vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, depth_keep_imgs):
     # print msg and do nothing if vid not uploaded
     if not vid_to_depth_chosen_file:
         return print("Please upload a video :()")
@@ -1264,7 +1261,7 @@ def upload_vid_to_depth(vid_to_depth_chosen_file, mode, thresholding, threshold_
     root_params = Root()
     f_models_path = root_params['models_path']
     
-    process_depth_vid_upload_logic(vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, vid_to_depth_chosen_file.orig_name, depth_keep_imgs, f_location, f_crf, f_preset, f_models_path)
+    process_depth_vid_upload_logic(vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, vid_to_depth_chosen_file.orig_name, depth_keep_imgs, f_location, f_crf, f_preset, f_models_path)
 
 def ncnn_upload_vid_to_upscale(vid_path, in_vid_fps, in_vid_res, out_vid_res, upscale_model, upscale_factor, keep_imgs):
     if vid_path is None:

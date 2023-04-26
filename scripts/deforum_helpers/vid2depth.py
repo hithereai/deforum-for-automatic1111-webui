@@ -20,7 +20,7 @@ from modules.shared import opts
 
 DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
 
-def process_depth_vid_upload_logic(file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, vid_file_name, keep_imgs, f_location, f_crf, f_preset, f_models_path):
+def process_depth_vid_upload_logic(file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, vid_file_name, keep_imgs, f_location, f_crf, f_preset, f_models_path):
     print("got a request to *vid2depth* an existing video.")
 
     in_vid_fps, _, _ = get_quick_vid_info(file.name)
@@ -36,9 +36,9 @@ def process_depth_vid_upload_logic(file, mode, thresholding, threshold_value, th
     
     vid2frames(video_path=file.name, video_in_frame_path=outdir, overwrite=True, extract_from_frame=0, extract_to_frame=-1, numeric_files_output=True, out_img_format='png')
     
-    process_video_depth(mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, orig_vid_fps=in_vid_fps, real_audio_track=file.name, raw_output_imgs_path=outdir, img_batch_id=None, ffmpeg_location=f_location, ffmpeg_crf=f_crf, ffmpeg_preset=f_preset, f_models_path=f_models_path, keep_depth_imgs=keep_imgs, orig_vid_name=folder_name)
+    process_video_depth(mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, orig_vid_fps=in_vid_fps, real_audio_track=file.name, raw_output_imgs_path=outdir, img_batch_id=None, ffmpeg_location=f_location, ffmpeg_crf=f_crf, ffmpeg_preset=f_preset, f_models_path=f_models_path, keep_depth_imgs=keep_imgs, orig_vid_name=folder_name)
 
-def process_video_depth(mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, orig_vid_fps, real_audio_track, raw_output_imgs_path, img_batch_id, ffmpeg_location, ffmpeg_crf, ffmpeg_preset, f_models_path, keep_depth_imgs, orig_vid_name):
+def process_video_depth(mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, orig_vid_fps, real_audio_track, raw_output_imgs_path, img_batch_id, ffmpeg_location, ffmpeg_crf, ffmpeg_preset, f_models_path, keep_depth_imgs, orig_vid_name):
     devices.torch_gc()
 
     print("Vid2depth progress (it's OK if it finishes before 100%):")
@@ -66,9 +66,9 @@ def process_video_depth(mode, thresholding, threshold_value, threshold_value_max
     
     # Loading the chosen model
     if 'Mixed' in mode:
-        model = (load_depth_model(f_models_path, midas_weight_vid2depth), load_anime_model())
+        model = (load_depth_model(f_models_path), load_anime_model())
     elif 'Depth' in mode:
-        model = load_depth_model(f_models_path, midas_weight_vid2depth)
+        model = load_depth_model(f_models_path)
     elif 'Anime' in mode:
         model = load_anime_model()
     else:
@@ -78,7 +78,7 @@ def process_video_depth(mode, thresholding, threshold_value, threshold_value_max
     for i in tqdm(range(len(videogen)), desc="Vid2depth"):
         lastframe = videogen[i]
         img_path = os.path.join(temp_convert_raw_png_path, lastframe)
-        image = process_frame(model, Image.open(img_path).convert("RGB"), mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth)
+        image = process_frame(model, Image.open(img_path).convert("RGB"), mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur)
         filename = '{}/{:0>9d}.png'.format(custom_upscale_path, i)
         image.save(filename)
     
@@ -91,7 +91,7 @@ def process_video_depth(mode, thresholding, threshold_value, threshold_value_max
     # stitch video from upscaled frames, and add audio if needed
     try:
         print (f"*Passing depth frames to ffmpeg...*")
-        vid_out_path = stitch_video(img_batch_id, orig_vid_fps, custom_upscale_path, real_audio_track, ffmpeg_location, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, ffmpeg_crf, ffmpeg_preset, keep_depth_imgs, orig_vid_name)
+        vid_out_path = stitch_video(img_batch_id, orig_vid_fps, custom_upscale_path, real_audio_track, ffmpeg_location, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, ffmpeg_crf, ffmpeg_preset, keep_depth_imgs, orig_vid_name)
         # remove folder with raw (non-upscaled) vid input frames in case of input VID and not PNGs
         if orig_vid_name is not None:
             shutil.rmtree(raw_output_imgs_path)
@@ -101,17 +101,17 @@ def process_video_depth(mode, thresholding, threshold_value, threshold_value_max
     gc.collect()
     devices.torch_gc()
 
-def process_frame(model, image, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth):
+def process_frame(model, image, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur):
     # Get grayscale foreground map
     if 'None' in mode:
         depth = process_depth(image, 'None', thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur)
     elif not 'Mixed' in mode:
-        depth = process_frame_depth(model, np.array(image), midas_weight_vid2depth) if 'Depth' in mode else process_frame_anime(model, np.array(image))
+        depth = process_frame_depth(model, np.array(image)) if 'Depth' in mode else process_frame_anime(model, np.array(image))
         depth = process_depth(depth, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur)
     else:
         if thresholding == 'None':
             raise "Mixed mode doesn't work with no thresholding!"
-        depth_depth = process_frame_depth(model[0], np.array(image), midas_weight_vid2depth)
+        depth_depth = process_frame_depth(model[0], np.array(image))
         depth_depth = process_depth(depth_depth, 'Depth', thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur)
         anime_depth = process_frame_anime(model[1], np.array(image))
         anime_depth = process_depth(anime_depth, 'Anime', 'Simple', 32, 255, adapt_block_size, adapt_c, invert, end_blur)
@@ -149,7 +149,7 @@ def process_depth(depth, mode, thresholding, threshold_value, threshold_value_ma
         # This commits thresholding again, but on the already processed image, so we don't need to set it up as much
         return Image.fromarray(cv2.threshold(depth, 127, 255, cv2.THRESH_BINARY)[1]).convert('L')
     
-def stitch_video(img_batch_id, fps, img_folder_path, audio_path, ffmpeg_location, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, f_crf, f_preset, keep_imgs, orig_vid_name):        
+def stitch_video(img_batch_id, fps, img_folder_path, audio_path, ffmpeg_location, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, f_crf, f_preset, keep_imgs, orig_vid_name):        
     parent_folder = os.path.dirname(img_folder_path)
     grandparent_folder = os.path.dirname(parent_folder)
     mode = str(mode).replace('\\', '_').replace(' ', '_').replace('(', '_').replace(')', '_')
@@ -178,7 +178,7 @@ def stitch_video(img_batch_id, fps, img_folder_path, audio_path, ffmpeg_location
     return mp4_path
 
 # Midas/Adabins Depth mode with the usual workflow
-def load_depth_model(models_path, midas_weight_vid2depth):
+def load_depth_model(models_path):
     device = ('cpu' if cmd_opts.lowvram or cmd_opts.medvram else sh_device)
     keep_in_vram = False # TODO: Future  - handle this too?
     print('Loading Depth Model')
@@ -223,9 +223,9 @@ def get_mask(rmbg_model, img, s=1024):
     mask = (mask * 255).astype(np.uint8)
     return mask
 
-def process_frame_depth(depth_model, image, midas_weight):
+def process_frame_depth(depth_model, image):
     opencv_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    depth = depth_model.predict(opencv_image, midas_weight, not cmd_opts.no_half)
+    depth = depth_model.predict(opencv_image, not cmd_opts.no_half)
     return depth_model.to_image(depth)
 
 def process_frame_anime(model, image):
