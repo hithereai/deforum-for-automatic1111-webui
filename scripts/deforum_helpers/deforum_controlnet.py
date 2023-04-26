@@ -75,9 +75,7 @@ def setup_controlnet_ui_raw():
             overwrite_frames = gr.Checkbox(label='Overwrite input frames', value=True, interactive=True)
             vid_path = gr.Textbox(value='', label="ControlNet Input Video Path", interactive=True)
             mask_vid_path = gr.Textbox(value='', label="ControlNet Mask Video Path", interactive=True)
-        input_video_chosen_file = gr.File(label="ControlNet Video Input", interactive=True, file_count="single", file_types=["video"], elem_id="controlnet_input_video_chosen_file", visible=False)
-        input_video_mask_chosen_file = gr.File(label="ControlNet Video Mask Input", interactive=True, file_count="single", file_types=["video"], elem_id="controlnet_input_video_mask_chosen_file", visible=False)
-        hide_output_list = [pixel_perfect,low_vram,mod_row,module,weight_row,env_row,vid_settings_row,input_video_chosen_file,input_video_mask_chosen_file, advanced_column, control_mode_row] 
+        hide_output_list = [pixel_perfect,low_vram,mod_row,module,weight_row,env_row,vid_settings_row, advanced_column, control_mode_row] 
         for cn_output in hide_output_list:
             enabled.change(fn=hide_ui_by_cn_status, inputs=enabled,outputs=cn_output)
         module.change(build_sliders, inputs=[module, pixel_perfect], outputs=[processor_res, threshold_a, threshold_b, advanced_column])
@@ -91,7 +89,7 @@ def setup_controlnet_ui_raw():
         return {key: value for key, value in locals().items() if key in [
             "enabled", "pixel_perfect","low_vram", "module", "model", "weight",
             "guidance_start", "guidance_end", "processor_res", "threshold_a", "threshold_b", "resize_mode", "control_mode",
-            "overwrite_frames", "vid_path", "mask_vid_path", "input_video_chosen_file", "input_video_mask_chosen_file"
+            "overwrite_frames", "vid_path", "mask_vid_path"
         ]}
         
     def refresh_all_models(*inputs):
@@ -129,7 +127,6 @@ def controlnet_component_names():
         return []
 
     return [f'cn_{i}_{component}' for i in range(1, num_of_models+1) for component in [
-        'input_video_chosen_file', 'input_video_mask_chosen_file',
         'overwrite_frames', 'vid_path', 'mask_vid_path', 'enabled',
         'low_vram', 'pixel_perfect',
         'module', 'model', 'weight', 'guidance_start', 'guidance_end',
@@ -210,33 +207,26 @@ def process_controlnet_video(args, anim_args, controlnet_args, video_path, mask_
         print(f"Loading {anim_args.max_frames} input frames from {frame_path} and saving video frames to {args.outdir}")
         print(f'ControlNet {id} {"video mask" if mask_path else "base video"} unpacked!')
 
+
 def unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, controlnet_args, animation_prompts, root):
+    # this func gets called from render.py once for an entire animation run
     for i in range(1, num_of_models+1):
         vid_path = getattr(controlnet_args, f'cn_{i}_vid_path', None)
-        vid_chosen_file = getattr(controlnet_args, f'cn_{i}_input_video_chosen_file', None)
-        vid_name = None
-        if vid_chosen_file is not None:
-            vid_name = getattr(getattr(controlnet_args, f'cn_{i}_input_video_chosen_file'), 'name', None)
-        
         mask_path = getattr(controlnet_args, f'cn_{i}_mask_vid_path', None)
-        mask_chosen_file = getattr(controlnet_args, f'cn_{i}_input_video_mask_chosen_file', None)
-        mask_name = None
-        if mask_chosen_file is not None:
-            mask_name = getattr(getattr(controlnet_args, f'cn_{i}_input_video_mask_chosen_file'), 'name', None)
 
         process_controlnet_video( # Process base video
             args, anim_args, controlnet_args,
-            vid_path or vid_name,
+            vid_path, #or vid_name,
             None,
             'inputframes',
             i
         )
 
-        if mask_name: # Process mask video, if available
+        if mask_path: # Process mask video, if available
             process_controlnet_video(
                 args, anim_args, controlnet_args,
                 None,
-                mask_path or mask_name,
+                mask_path, #or mask_name,
                 'maskframes',
                 i
             )
