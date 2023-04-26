@@ -195,12 +195,12 @@ def process_controlnet_video(args, anim_args, controlnet_args, video_path, mask_
         os.makedirs(frame_path, exist_ok=True)
 
         print(f"Exporting Video Frames (1 every {anim_args.extract_nth_frame}) frames to {frame_path}...")
-        vid2frames( # TODO: why extract to frame doesn't work?
+        vid2frames(
             video_path=video_path or mask_path,
             video_in_frame_path=frame_path,
-            n=anim_args.extract_nth_frame,
+            n=1 if anim_args.animation_mode != 'Video Input' else anim_args.extract_nth_frame,
             overwrite=getattr(controlnet_args, f'cn_{id}_overwrite_frames'),
-            extract_from_frame=anim_args.extract_from_frame,
+            extract_from_frame=0 if anim_args.animation_mode != 'Video Input' else anim_args.extract_from_frame,
             extract_to_frame=(anim_args.max_frames-1) if anim_args.animation_mode != 'Video Input' else anim_args.extract_to_frame,
             numeric_files_output=True
         )
