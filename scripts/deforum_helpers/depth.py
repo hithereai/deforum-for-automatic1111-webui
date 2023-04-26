@@ -7,6 +7,7 @@ import gc
 import torchvision.transforms as T
 from einops import rearrange, repeat
 from PIL import Image
+import PIL
 from midas.dpt_depth import DPTDepthModel
 from midas.transforms import Resize, NormalizeImage, PrepareForNet
 import torchvision.transforms.functional as TF
@@ -14,7 +15,167 @@ from .general_utils import checksum
 from modules import lowvram, devices
 from modules.shared import opts
 from .ZoeDepth import ZoeDepth
+from torchvision.transforms import Compose
 
+def normalize(img, input_range = None):
+    if input_range is None:
+        minv = img.min()
+    else:
+        minv = input_range[0]
+    img = img - minv
+
+    if input_range is None:
+        maxv = img.max()
+    else:
+        maxv = input_range[1] - minv
+
+    if maxv != 0:
+        img = img / maxv
+
+    return img
+    
+def plot_hist(values, img_path, width=0, height=0, title = '', nbins = 30, xlim = None, vlines = True):
+    try:
+        values = np.array(values).flatten()
+        fig = plt.figure()
+        plt.hist(values, bins = nbins)
+        if xlim is not None:
+            plt.xlim(xlim[0], xlim[1])
+        if len(title)>0:
+            plt.title(title)
+
+        if vlines:
+            plt.axvline(width, color='k', linestyle='dashed', linewidth=1)
+            plt.axvline(height, color='k', linestyle='dashed', linewidth=1)
+            plt.axvline(np.mean(values), color='r', linestyle='dashed', linewidth=1)
+
+        plt.savefig(os.path.join(cfg.output_dir, img_path))
+        plt.clf()
+        plt.close(fig)
+    except:
+        return
+def adjust_range(img, out_range, input_range = None):
+    img = normalize(img, input_range = input_range)
+    img = img * (out_range[1] - out_range[0])
+    img = img + out_range[0]
+    return img
+
+def pt_to_np(img, out_range = [0., 255.], input_range = None):
+    img = img.squeeze().detach().cpu().numpy()
+    img = normalize(img, input_range = input_range)
+    img = img * (out_range[1] - out_range[0])
+    img = img + out_range[0]
+
+    if len(img.shape) == 3:
+        img = np.transpose(img, (1, 2, 0)).astype(np.uint8)
+
+    return img
+
+def save_pt_img(img, save_str, input_range = None, outdir = '', extension = '.jpg'):
+    img = pt_to_np(img, input_range = input_range)
+    return save_np_img(img, save_str, input_range = [0., 255.], outdir = outdir, extension = extension)
+
+def save_np_img(img, save_str, input_range = None, outdir = '', extension = ".jpg", save_latent = None, jpg_save_quality = 95):
+    if img is None:
+        return None, None
+
+    img = normalize(img, input_range = input_range)
+    img_numpy = (255. * img).astype(np.uint8)
+
+    if len(img.shape) == 2: #grayscale
+        img = PIL.Image.fromarray(img_numpy, 'L')
+    else:
+        img = PIL.Image.fromarray(img_numpy)
+
+    target_path = os.path.join(outdir, save_str)
+    os.makedirs(os.path.dirname(target_path), exist_ok = True)
+    try:
+        img.save(target_path + extension, quality=jpg_save_quality)
+
+        if (save_latent is not None): #and cfg.save_numpy_arrays:
+            try:
+                save_latent = save_latent.detach().cpu().numpy()
+            except:
+                pass
+            np.savez_compressed(target_path, latent=save_latent)
+
+    except Exception as e:
+        print("Error saving %s: %s" %(save_str, str(e)))
+
+    return target_path, img_numpy
+
+def generate_np_img(lats, model, config, return_pre_quant = False):
+    with torch.no_grad():
+        pt_tensor = torch.clamp(lats.generate_image(with_grad = False), min=-1.0, max=1.0)
+        img = pt_to_np(pt_tensor, input_range = [-1., 1.])
+
+        if config['color_quantization']:
+            pt_tensor_qt, _, _ = quantize_img(pt_tensor, config['palette'], input_range = [-1.,1.])
+            img_qt = pt_to_np(pt_tensor_qt, input_range = [-1., 1.])
+            if return_pre_quant:
+                return img_qt, img, pt_tensor_qt
+            else:
+                return img_qt, pt_tensor_qt
+                
+        else:
+            if return_pre_quant:
+                return img, None, pt_tensor
+            else:
+                return img, pt_tensor
+  
+
+def postprocess_depth(depth_map, minv, maxv, near, far, equalization_f = 0.1, percentile = 0.0, invert = False, plot = 1):
+    # Avoid negative numbers:
+    depth_map = depth_map - minv
+    
+    # Get stats from the raw depth map:
+    min_depth_fraction = depth_map.min() / (maxv-minv)
+    max_depth_fraction = depth_map.max() / (maxv-minv)
+
+    if plot:
+        plot_hist(depth_map.cpu().numpy(), "depth/depth_01_raw", nbins = 50, xlim = [0, maxv])
+        save_pt_img(depth_map, "depth/depth_map_raw")
+
+    # normalize::
+    depth_map = adjust_range(depth_map, [0, 1])
+
+    if percentile > 0.0: # cutoff edge depths (min and max)
+        depth_map = torch.clamp(depth_map, percentile, 1-percentile)
+        depth_map = adjust_range(depth_map, [0, 1])
+
+    if invert:
+        depth_map = 1 - depth_map
+
+    #depth_map = load_depthmap(depth_map)
+
+    if equalization_f > 0.0: # Histogram equalization:
+        depth_map_eq = TF.equalize((depth_map * 255.).to(torch.uint8)).float() / 255.
+        depth_map    = (1-equalization_f)*depth_map + equalization_f*depth_map_eq
+
+    if plot:
+        plot_hist(depth_map.cpu().numpy(), "depth/depth_02_eq", nbins = 50, xlim = [0,1])
+
+    # Rescale the dynamic depth range:
+    range_rescaling_f  = 0.5 # 0.0: use input range, 1.0: use full range
+    max_depth_fraction = (1-range_rescaling_f)*max_depth_fraction + range_rescaling_f*0.95
+    min_depth_fraction = (1-range_rescaling_f)*min_depth_fraction + range_rescaling_f*0.05
+
+    #max_depth_fraction = torch.clip(max_depth_fraction, 0.50, 1.00)
+    #min_depth_fraction = torch.clip(min_depth_fraction, 0.00, 0.25)
+    depth_map          = adjust_range(depth_map, [min_depth_fraction, max_depth_fraction])
+
+    if plot:
+        plot_hist(depth_map.cpu().numpy(), "depth/depth_03_eq", nbins = 50, xlim = [0,1])
+
+    # Assumes the incoming depth_map is in range [0,1]:
+    depth_map = (far-near)*(depth_map) + near
+
+    if plot:
+        plot_hist(depth_map.cpu().numpy(), "depth/depth_04_fin", nbins = 50, xlim = [0, far])
+        save_pt_img(depth_map, "depth/depth_map_postprocessed")
+
+    return depth_map.squeeze()
+    
 class MidasModel:
     _instance = None
 
@@ -75,6 +236,31 @@ class MidasModel:
                 self.midas_model = self.midas_model.to(memory_format=torch.channels_last)
                 self.midas_model = self.midas_model.half()
 
+    def midas_inference(self, sample, optimize, orig_size, 
+        flip_dir = 2, # 2: up-down, 3: left-right
+        orig_f   = 0.66  # Midas has a bias to predict bottom pixels as closer due to its training regime, this partly compensates for that
+        ):
+
+        if optimize==True:
+            sample = sample.to(memory_format=torch.channels_last)  
+            sample = sample.half()
+
+        depth_map = model.forward(sample)
+
+        if flip_dir != 0 and (orig_f != 1):
+            depth_map_secondary = torch.flip(model.forward(torch.flip(sample, [flip_dir])), [flip_dir-1])
+            depth_map = orig_f * depth_map + (1-orig_f) * depth_map_secondary
+
+        depth_map = torch.nn.functional.interpolate(
+                depth_map.unsqueeze(1),
+                size=orig_size,
+                mode="bicubic",
+                align_corners=True)
+
+        return depth_map
+        
+    
+        
     def predict(self, prev_img_cv2, half_precision) -> torch.Tensor:
         DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
         
@@ -82,8 +268,8 @@ class MidasModel:
         
         if self.use_zoe_depth:
             depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
-            depth_tensor = torch.subtract(119.77386934673366, depth_tensor)
-            depth_tensor = depth_tensor / 51.81818181818182
+            # depth_tensor = torch.subtract(119.77386934673366, depth_tensor)
+            # depth_tensor = depth_tensor / 51.81818181818182
 
         else:
             w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
@@ -91,7 +277,11 @@ class MidasModel:
             img_midas = prev_img_cv2.astype(np.float32) / 255.0
             img_midas_input = self.midas_transform({"image": img_midas})["image"]
             sample = torch.from_numpy(img_midas_input).float().to(self.device).unsqueeze(0)
-
+            
+            raw_midas_depth = midas_inference(input_pt_img, optimize=True, orig_size)
+            
+            
+            
             if self.device.type == "cuda" or self.device.type == "mps":
                 sample = sample.to(memory_format=torch.channels_last)
                 if half_precision:
@@ -112,12 +302,19 @@ class MidasModel:
 
             torch.cuda.empty_cache()
             
-            # midas_depth = np.subtract(50.0, midas_depth) / 19.0
+            near = 1000
+            far = 100000
+            px = 2/min(self.Height, self.Width)
             
-            midas_depth = np.subtract(119.77386934673366, midas_depth)
-            midas_depth = midas_depth / 51.81818181818182
-
             
+            raw_midas_depth = midas_inference(input_pt_img, optimize=True, orig_size)
+            
+            raw_depth    = midas_depth
+            raw_depth_tensor = torch.from_numpy(np.expand_dims(raw_depth, axis=0)).squeeze().to(self.device)
+            print(raw_depth_tensor)
+            depth_tensor_1 = postprocess_depth(raw_depth_tensor.clone().detach(), -1.5, 100, near*px, far*px, invert=True)
+            print(depth_tensor_1)
+           
             depth_tensor = torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze().to(self.device)
         
         if DEBUG_MODE:
