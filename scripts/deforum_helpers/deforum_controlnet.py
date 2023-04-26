@@ -195,7 +195,7 @@ def process_controlnet_video(args, anim_args, controlnet_args, video_path, mask_
         os.makedirs(frame_path, exist_ok=True)
 
         print(f"Exporting Video Frames (1 every {anim_args.extract_nth_frame}) frames to {frame_path}...")
-        vid2frames(
+        vid2frames( # TODO: why extract to frame doesn't work?
             video_path=video_path or mask_path,
             video_in_frame_path=frame_path,
             n=anim_args.extract_nth_frame,
@@ -216,7 +216,7 @@ def unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, 
 
         process_controlnet_video( # Process base video
             args, anim_args, controlnet_args,
-            vid_path, #or vid_name,
+            vid_path,
             None,
             'inputframes',
             i
@@ -226,7 +226,7 @@ def unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, 
             process_controlnet_video(
                 args, anim_args, controlnet_args,
                 None,
-                mask_path, #or mask_name,
+                mask_path,
                 'maskframes',
                 i
             )
