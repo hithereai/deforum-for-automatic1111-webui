@@ -163,6 +163,7 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
             cn_mask_frame_path = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes', f"{frame_idx:09}.jpg")
             if os.path.exists(cn_mask_frame_path):
                 cn_mask_np = np.array(Image.open(cn_mask_frame_path).convert("RGB")).astype('uint8')
+
         return cn_mask_np, cn_image_np
 
     cnet = find_controlnet()
@@ -196,11 +197,13 @@ def process_controlnet_input_frames(args, anim_args, controlnet_args, video_path
         frame_path = os.path.join(args.outdir, f'controlnet_{id}_{outdir_suffix}')
         os.makedirs(frame_path, exist_ok=True)
         
-        # TODO: handle masks too
         accepted_image_extensions = ('.jpg', '.jpeg', '.png', '.bmp')
         if video_path and video_path.lower().endswith(accepted_image_extensions):
             convert_image(video_path, os.path.join(frame_path, '000000001.jpg'))
             print(f"Copied CN Model {id}'s single input image to inputframes folder!")
+        elif mask_path and mask_path.lower().endswith(accepted_image_extensions):
+            convert_image(mask_path, os.path.join(frame_path, '000000001.jpg'))
+            print(f"Copied CN Model {id}'s single input image to inputframes *mask* folder!")
         else:
             print(f'Unpacking ControlNet {id} {"video mask" if mask_path else "base video"}')
             print(f"Exporting Video Frames to {frame_path}...") # future todo, add an if for vid input mode to show actual extract nth param
