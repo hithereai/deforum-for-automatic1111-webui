@@ -82,7 +82,7 @@ def setup_controlnet_ui_raw():
         with gr.Row(visible=False) as vid_path_row:
             vid_path = gr.Textbox(value='', label="ControlNet Input Video/ Image Path", interactive=True)
         with gr.Row(visible=False) as mask_vid_path_row: # invisible temporarily since 26-04-23 until masks are fixed
-            mask_vid_path = gr.Textbox(value='', label="ControlNet Mask Video/ Image Path", interactive=True)
+            mask_vid_path = gr.Textbox(value='', label="ControlNet Mask Video/ Image Path (*NOT WORKING, kept in UI for CN's devs testing!*)", interactive=True)
         with gr.Row(visible=False) as control_mode_row:
             control_mode = gr.Radio(choices=["Balanced", "My prompt is more important", "ControlNet is more important"], value="Balanced", label="Control Mode", interactive=True)            
         with gr.Row(visible=False) as env_row:
