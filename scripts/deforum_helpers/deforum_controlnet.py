@@ -160,7 +160,12 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
                 cn_image_np = np.array(Image.open(cn_frame_path).convert("RGB")).astype('uint8')
         cn_maskframes = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes') # set mask frames folder path        
         if os.path.exists(cn_maskframes):
-            cn_mask_frame_path = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes', f"{frame_idx:09}.jpg")
+            if count_files_in_folder(cn_maskframes) == 1:
+                cn_mask_frame_path = os.path.join(cn_inputframes, "000000001.jpg")
+                print(f'Reading ControlNet *static* mask frame at {cn_mask_frame_path}')
+            else:
+                cn_mask_frame_path = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes', f"{frame_idx:09}.jpg")
+                print(f'Reading ControlNet {cn_idx} mask frame #{frame_idx} at {cn_mask_frame_path}')
             if os.path.exists(cn_mask_frame_path):
                 cn_mask_np = np.array(Image.open(cn_mask_frame_path).convert("RGB")).astype('uint8')
 
