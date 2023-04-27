@@ -87,7 +87,7 @@ def setup_controlnet_ui_raw():
             control_mode = gr.Radio(choices=["Balanced", "My prompt is more important", "ControlNet is more important"], value="Balanced", label="Control Mode", interactive=True)            
         with gr.Row(visible=False) as env_row:
             resize_mode = gr.Radio(choices=["Outer Fit (Shrink to Fit)", "Inner Fit (Scale to Fit)", "Just Resize"], value="Inner Fit (Scale to Fit)", label="Resize Mode", interactive=True)
-        hide_output_list = [pixel_perfect,low_vram,mod_row,module,weight_row,env_row,overwrite_frames,vid_path_row,control_mode_row] # add mask_vid_path_row when masks are working again
+        hide_output_list = [pixel_perfect,low_vram,mod_row,module,weight_row,env_row,overwrite_frames,vid_path_row,control_mode_row, mask_vid_path_row] # add mask_vid_path_row when masks are working again
         for cn_output in hide_output_list:
             enabled.change(fn=hide_ui_by_cn_status, inputs=enabled,outputs=cn_output)
         module.change(build_sliders, inputs=[module, pixel_perfect], outputs=[processor_res, threshold_a, threshold_b, advanced_column])
@@ -198,7 +198,7 @@ def process_controlnet_input_frames(args, anim_args, controlnet_args, video_path
         
         # TODO: handle masks too
         accepted_image_extensions = ('.jpg', '.jpeg', '.png', '.bmp')
-        if video_path.lower().endswith(accepted_image_extensions):
+        if video_path and video_path.lower().endswith(accepted_image_extensions):
             convert_image(video_path, os.path.join(frame_path, '000000001.jpg'))
             print(f"Copied CN Model {id}'s single input image to inputframes folder!")
         else:
