@@ -368,8 +368,8 @@ class MidasModel:
         
         if self.use_zoe_depth:
             depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
-            # depth_tensor = torch.subtract(119.77386934673366, depth_tensor)
-            # depth_tensor = depth_tensor / 51.81818181818182
+            depth_tensor = torch.subtract(119.77386934673366, depth_tensor)
+            depth_tensor = depth_tensor / 51.81818181818182
 
         else:
             w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
