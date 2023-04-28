@@ -372,14 +372,15 @@ class MidasModel:
             # depth_tensor = depth_tensor / 51.81818181818182
 
         else:
-            near, far = 200, 20000
-            px = 2/min(self.Height, self.Width)
             w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
+            # orig_size    = input_pt_img.shape[2:]
+            near, far = 200, 10000
+            px = 2/min(w, h)
             img_midas = prev_img_cv2.astype(np.float32) / 255
             img_midas_input = self.midas_transform({"image": img_midas})["image"]
             sample = torch.from_numpy(img_midas_input).float().to(self.device).unsqueeze(0)
             with torch.no_grad():
-                raw_midas_depth = self.midas_inference(sample, True, 512)
+                raw_midas_depth = self.midas_inference(sample, True, [w,h])
             depth_tensor = postprocess_depth(raw_midas_depth.clone().detach(), -1.5, 100, near*px, far*px, invert=False)
             depth_tensor = depth_tracker.moving_average(depth_tensor)
 
