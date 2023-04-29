@@ -12,7 +12,7 @@ class LeReSDepth:
         self.width = width
         self.height = height
         self.models_path = models_path
-        self.checkpoint_name = checkpoint_path
+        self.checkpoint_name = checkpoint_name
         self.backbone = backbone
         
         self.depth_model = RelDepthModel(backbone=self.backbone)
