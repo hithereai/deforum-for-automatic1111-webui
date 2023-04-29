@@ -4,8 +4,8 @@ import os
 import numpy as np
 import torchvision.transforms as transforms
 from PIL import Image
-from lib.multi_depth_model_woauxi import RelDepthModel
-from lib.net_tools import load_ckpt
+from leres.lib.multi_depth_model_woauxi import RelDepthModel
+from leres.lib.net_tools import load_ckpt
 
 class LeReSDepth:
     def __init__(self, width=448, height=448, models_path=None, checkpoint_name='res101.pth', backbone='resnext101'):
