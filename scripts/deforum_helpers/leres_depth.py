@@ -8,7 +8,7 @@ from lib.multi_depth_model_woauxi import RelDepthModel
 from lib.net_tools import load_ckpt
 
 class LeReSDepth:
-    def __init__(self, width=448, height=448, models_path, checkpoint_name='res101.pth', backbone='resnext101'):
+    def __init__(self, width=448, height=448, models_path=None, checkpoint_name='res101.pth', backbone='resnext101'):
         self.width = width
         self.height = height
         self.models_path = models_path
