@@ -16,6 +16,7 @@ from .general_utils import checksum
 from modules import lowvram, devices
 from modules.shared import opts
 from .ZoeDepth import ZoeDepth
+from .leres_depth import LeReSDepth
 
 class MidasModel:
     _instance = None
@@ -47,7 +48,8 @@ class MidasModel:
         self.use_zoe_depth = use_zoe_depth
         
         if self.use_zoe_depth:
-            self.zoe_depth = ZoeDepth(self.Width, self.Height)
+            seld.zoe_depth = LeReSDepth(width=448, height=448, models_path=models_path, checkpoint_name='res101.pth', backbone='resnext101')
+            # self.zoe_depth = ZoeDepth(self.Width, self.Height)
         if not self.use_zoe_depth:
             model_file = os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')
             if not os.path.exists(model_file):
