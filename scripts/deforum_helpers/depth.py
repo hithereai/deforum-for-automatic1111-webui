@@ -48,7 +48,7 @@ class MidasModel:
         self.use_zoe_depth = use_zoe_depth
         
         if self.use_zoe_depth:
-            seld.zoe_depth = LeReSDepth(width=448, height=448, models_path=models_path, checkpoint_name='res101.pth', backbone='resnext101')
+            self.zoe_depth = LeReSDepth(width=448, height=448, models_path=models_path, checkpoint_name='res101.pth', backbone='resnext101')
             # self.zoe_depth = ZoeDepth(self.Width, self.Height)
         if not self.use_zoe_depth:
             model_file = os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')
@@ -84,11 +84,19 @@ class MidasModel:
         use_adabins = midas_weight < 1.0 and self.adabins_helper is not None
         
         img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
-        
         if self.use_zoe_depth:
-            depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
-            if use_adabins:
-                depth_tensor = torch.subtract(50.0, depth_tensor) / 19
+            # depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
+            img_leres = prev_img_cv2.astype(np.float32) / 255.0
+            depth_array = self.zoe_depth.predict(img_leres)
+            depth_tensor = torch.from_numpy(depth_array).to(self.device) # Convert numpy array to tensor
+            # if use_adabins:
+                # depth_tensor = torch.subtract(50.0, depth_tensor) / 19
+        # if self.use_zoe_depth:
+            # depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
+            # img_leres = prev_img_cv2.astype(np.float32) / 255.0
+            # depth_tensor = self.zoe_depth.predict(img_leres).to(self.device)
+            # if use_adabins:
+                # depth_tensor = torch.subtract(50.0, depth_tensor) / 19
         else:
             w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
 

@@ -17,7 +17,7 @@ def get_func(func_name):
         if len(parts) == 1:
             return globals()[parts[0]]
         # Otherwise, assume we're referencing a module under modeling
-        module_name = 'lib.' + '.'.join(parts[:-1])
+        module_name = 'leres.lib.' + '.'.join(parts[:-1])
         module = importlib.import_module(module_name)
         return getattr(module, parts[-1])
     except Exception:
@@ -28,9 +28,9 @@ def load_ckpt(args, depth_model, shift_model, focal_model):
     """
     Load checkpoint.
     """
-    if os.path.isfile(args.load_ckpt):
-        print("loading checkpoint %s" % args.load_ckpt)
-        checkpoint = torch.load(args.load_ckpt)
+    if os.path.isfile(args):
+        print("loading checkpoint %s" % args)
+        checkpoint = torch.load(args)
         if shift_model is not None:
             shift_model.load_state_dict(strip_prefix_if_present(checkpoint['shift_model'], 'module.'),
                                     strict=True)
