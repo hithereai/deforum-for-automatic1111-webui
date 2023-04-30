@@ -117,11 +117,11 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         device = ('cpu' if cmd_opts.lowvram or cmd_opts.medvram else root.device)
         depth_model = MidasModel(root.models_path, device, root.half_precision, keep_in_vram=keep_in_vram, use_zoe_depth=anim_args.use_zoe_depth, Width=args.W, Height=args.H)
         
-        if anim_args.midas_weight < 1.0:
-            if DEBUG_MODE:
-                print("Engaging AdaBins, as MiDaS < 1")
-            adabins_model = AdaBinsModel(root.models_path, keep_in_vram=keep_in_vram)
-            depth_model.adabins_helper = adabins_model.adabins_helper
+        # if anim_args.midas_weight < 1.0:
+            # if DEBUG_MODE:
+                # print("Engaging AdaBins, as MiDaS < 1")
+            # adabins_model = AdaBinsModel(root.models_path, keep_in_vram=keep_in_vram)
+            # depth_model.adabins_helper = adabins_model.adabins_helper
             
         # depth-based hybrid composite mask requires saved depth maps
         if anim_args.hybrid_composite != 'None' and anim_args.hybrid_comp_mask_type =='Depth':
@@ -608,8 +608,8 @@ def render_animation(args, anim_args, video_args, parseq_args, loop_args, contro
         
     if predict_depths and not keep_in_vram:
         depth_model.delete_model()
-        if anim_args.midas_weight < 1.0:
-            adabins_model.delete_model()
+        # if anim_args.midas_weight < 1.0:
+            # adabins_model.delete_model()
             
     if load_raft: # TODO: add to keep_in_vram? only 22MB...
         raft_model.delete_model()

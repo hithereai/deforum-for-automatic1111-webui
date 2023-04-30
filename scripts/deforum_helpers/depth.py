@@ -80,7 +80,8 @@ class MidasModel:
         DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
         
         use_adabins = midas_weight < 1.0 and self.adabins_helper is not None
-        
+        use_adabins = False
+
         img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
         
         if self.use_zoe_depth:
@@ -113,7 +114,7 @@ class MidasModel:
                 print(torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze())
 
             torch.cuda.empty_cache()
-            midas_depth = np.subtract(50.0, midas_depth) / 19.0
+            # midas_depth = np.subtract(50.0, midas_depth) / 19.0
             depth_tensor = torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze().to(self.device)
         
         if DEBUG_MODE:
@@ -121,11 +122,9 @@ class MidasModel:
             print("Tensor data:")
             print(depth_tensor)
 
-        w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
-
         if use_adabins:
             MAX_ADABINS_AREA, MIN_ADABINS_AREA = 500000, 448 * 448
-
+            w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
             img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
             image_pil_area, resized = w * h, False
 

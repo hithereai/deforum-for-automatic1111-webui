@@ -216,7 +216,7 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
     torch.cuda.empty_cache()
     return result
 
-def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, anim_args, keys, frame_idx):
+def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, anim_args, keys, frame_idx, invert=True, depth_offset=-2):
     # adapted and optimized version of transform_image_3d from Disco Diffusion https://github.com/alembics/disco-diffusion 
     w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
 
@@ -233,9 +233,14 @@ def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, a
 
     # range of [-1,1] is important to torch grid_sample's padding handling
     y,x = torch.meshgrid(torch.linspace(-1.,1.,h,dtype=torch.float32,device=device),torch.linspace(-1.,1.,w,dtype=torch.float32,device=device))
+    if invert:
+        depth_tensor = -depth_tensor
     if depth_tensor is None:
         z = torch.ones_like(x)
     else:
+        print(f"Depth tensor min: {depth_tensor.min()} Depth tensor max: {depth_tensor.max()}")
+        # Normalize depth tensor and add offset
+        depth_tensor = (depth_tensor - depth_tensor.min()) / (depth_tensor.max() - depth_tensor.min()) * 2 - 1 + depth_offset
         z = torch.as_tensor(depth_tensor, dtype=torch.float32, device=device)
     xyz_old_world = torch.stack((x.flatten(), y.flatten(), z.flatten()), dim=1)
 
