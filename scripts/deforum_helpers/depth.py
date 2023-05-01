@@ -11,6 +11,7 @@ from modules import lowvram, devices
 from modules.shared import opts
 from .depth_midas import MidasDepth
 from .depth_zoe import ZoeDepth
+from .depth_leres import LeReSDepth
 from .depth_adabins import AdaBinsModel
 
 class DepthModel:
