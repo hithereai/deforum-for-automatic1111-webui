@@ -2,6 +2,7 @@ import os
 import torch
 from infer import InferenceHelper
 from basicsr.utils.download_util import load_file_from_url
+from modules import devices
 import numpy as np
 from .general_utils import checksum
 
