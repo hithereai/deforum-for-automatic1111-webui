@@ -20,8 +20,7 @@ class DepthModel:
     def __new__(cls, *args, **kwargs):
             keep_in_vram = kwargs.get('keep_in_vram', False)
             depth_algorithm = kwargs.get('depth_algorithm', 'Midas')
-            Width = kwargs.get('Width', 512)
-            Height = kwargs.get('Height', 512)
+            Width, Height = kwargs.get('Width', 512), kwargs.get('Height', 512)
             model_switched = cls._instance and cls._instance.depth_algorithm != depth_algorithm
             resolution_changed = cls._instance and (cls._instance.Width != Width or cls._instance.Height != Height)
 
@@ -77,16 +76,14 @@ class DepthModel:
         blended_depth_map = (depth_tensor.cpu().numpy() * midas_weight + adabins_depth * (1.0 - midas_weight))
         depth_tensor = torch.from_numpy(np.expand_dims(blended_depth_map, axis=0)).squeeze().to(self.device)
         return depth_tensor
-
+        
     def to_image(self, depth: torch.Tensor):
         depth = depth.cpu().numpy()
         depth = np.expand_dims(depth, axis=0) if len(depth.shape) == 2 else depth
-        self.depth_min = min(self.depth_min, depth.min())
-        self.depth_max = max(self.depth_max, depth.max())
+        self.depth_min, self.depth_max = min(self.depth_min, depth.min()), max(self.depth_max, depth.max())
         denom = max(1e-8, self.depth_max - self.depth_min)
         temp = rearrange((depth - self.depth_min) / denom * 255, 'c h w -> h w c')
-        temp = repeat(temp, 'h w 1 -> h w c', c=3)
-        return Image.fromarray(temp.astype(np.uint8))
+        return Image.fromarray(repeat(temp, 'h w 1 -> h w c', c=3).astype(np.uint8))
 
     def save(self, filename: str, depth: torch.Tensor):
         self.to_image(depth).save(filename)
