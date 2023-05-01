@@ -28,6 +28,7 @@ class DepthModel:
         model_switched = cls._instance and cls._instance.use_zoe_depth != use_zoe_depth
         resolution_changed = cls._instance and (cls._instance.Width != Width or cls._instance.Height != Height)
 
+
         if cls._instance is None or (not keep_in_vram and not hasattr(cls._instance, 'midas_model')) or model_switched or resolution_changed:
             cls._instance = super().__new__(cls)
             cls._instance._initialize(models_path=args[0], device=args[1], half_precision=True, keep_in_vram=keep_in_vram, use_zoe_depth=use_zoe_depth, Width=Width, Height=Height)
@@ -41,10 +42,19 @@ class DepthModel:
         self.Width = Width
         self.Height = Height
         self.adabins_helper = None
-        self.depth_min = 1000
-        self.depth_max = -1000
+        self.depth_min = 1000 # for saving func
+        self.depth_max = -1000 # for saving func
         self.device = device
         self.use_zoe_depth = use_zoe_depth
+        # midas params, might be moved laters:
+        self.normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+
+        self.midas_transform = T.Compose([
+            Resize(384, 384, resize_target=None, keep_aspect_ratio=True, ensure_multiple_of=32,
+                   resize_method="minimal", image_interpolation_method=cv2.INTER_CUBIC),
+            self.normalization,
+            PrepareForNet()
+        ])
         
         if self.use_zoe_depth:
             self.zoe_depth = ZoeDepth(self.Width, self.Height)
@@ -54,8 +64,6 @@ class DepthModel:
 
             if not self.keep_in_vram or not hasattr(self, 'midas_model'):
                 self.load_midas_model(models_path, midas_model_filename)
-
-            self.midas_model.eval().to(self.device, memory_format=torch.channels_last if self.device == torch.device("cuda") else None)
             if half_precision:
                 self.midas_model = self.midas_model.half()
                 
@@ -67,15 +75,8 @@ class DepthModel:
             backbone="vitl16_384",
             non_negative=True,
         )
-
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-
-        self.midas_transform = T.Compose([
-            Resize(384, 384, resize_target=None, keep_aspect_ratio=True, ensure_multiple_of=32,
-                   resize_method="minimal", image_interpolation_method=cv2.INTER_CUBIC),
-            normalization,
-            PrepareForNet()
-        ])
+        self.midas_model.eval().to(self.device, memory_format=torch.channels_last if self.device == torch.device("cuda") else None)
+         
     def check_and_download_midas_model(self, models_path, midas_model_filename):
         model_file = os.path.join(models_path, midas_model_filename)
         if not os.path.exists(model_file):
