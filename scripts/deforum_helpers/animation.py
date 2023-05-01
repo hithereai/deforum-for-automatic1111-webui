@@ -198,6 +198,11 @@ def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
     )
 
 def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
+    if anim_args.depth_algorithm == 'MidasAdaBins':
+        depth_compat_mode = True
+    else:
+        depth_compat_mode = False
+    print(f"depth_compat_mode: {depth_compat_mode}")
     TRANSLATION_SCALE = 1.0/200.0 # matches Disco
     translate_xyz = [
         -keys.translation_x_series[frame_idx] * TRANSLATION_SCALE, 
@@ -212,11 +217,11 @@ def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
     if anim_args.enable_perspective_flip:
         prev_img_cv2 = flip_3d_perspective(anim_args, prev_img_cv2, keys, frame_idx)
     rot_mat = p3d.euler_angles_to_matrix(torch.tensor(rotate_xyz, device=device), "XYZ").unsqueeze(0)
-    result = transform_image_3d(device if not device.type.startswith('mps') else torch.device('cpu'), prev_img_cv2, depth, rot_mat, translate_xyz, anim_args, keys, frame_idx)
+    result = transform_image_3d(device if not device.type.startswith('mps') else torch.device('cpu'), prev_img_cv2, depth, rot_mat, translate_xyz, anim_args, keys, frame_idx, depth_compat_mode)
     torch.cuda.empty_cache()
     return result
 
-def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, anim_args, keys, frame_idx):
+def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, anim_args, keys, frame_idx, invert=True, depth_offset=-2, depth_compat_mode=False):
     # adapted and optimized version of transform_image_3d from Disco Diffusion https://github.com/alembics/disco-diffusion 
     w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
 
@@ -233,9 +238,16 @@ def transform_image_3d(device, prev_img_cv2, depth_tensor, rot_mat, translate, a
 
     # range of [-1,1] is important to torch grid_sample's padding handling
     y,x = torch.meshgrid(torch.linspace(-1.,1.,h,dtype=torch.float32,device=device),torch.linspace(-1.,1.,w,dtype=torch.float32,device=device))
+    if depth_compat_mode:
+        if invert:
+            depth_tensor = -depth_tensor
     if depth_tensor is None:
         z = torch.ones_like(x)
     else:
+        if depth_compat_mode:
+            print(f"Depth tensor min: {depth_tensor.min()} Depth tensor max: {depth_tensor.max()}")
+            # Normalize depth tensor and add offset
+            depth_tensor = (depth_tensor - depth_tensor.min()) / (depth_tensor.max() - depth_tensor.min()) * 2 - 1 + depth_offset
         z = torch.as_tensor(depth_tensor, dtype=torch.float32, device=device)
     xyz_old_world = torch.stack((x.flatten(), y.flatten(), z.flatten()), dim=1)
 
