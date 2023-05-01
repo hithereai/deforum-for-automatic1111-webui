@@ -19,20 +19,6 @@ from .ZoeDepth import ZoeDepth
 
 class DepthModel:
     _instance = None
-    
-    def check_and_download_midas_model(self, models_path, midas_model_filename):
-        model_file = os.path.join(models_path, midas_model_filename)
-        if not os.path.exists(model_file):
-            load_file_from_url(r"https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", models_path)
-            if checksum(model_file) != "fcc4829e65d00eeed0a38e9001770676535d2e95c8a16965223aba094936e1316d569563552a852d471f310f83f597e8a238987a26a950d667815e08adaebc06":
-                raise Exception(f"Error while downloading dpt_large-midas-2f21e586.pt. Please download from here: https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt and place in: {models_path}")
-
-    def debug_print(self, message, tensor=None):
-        DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
-        if DEBUG_MODE:
-            print(message)
-            if tensor is not None:
-                print(tensor)
 
     def __new__(cls, *args, **kwargs):
         keep_in_vram = kwargs.get('keep_in_vram', False)
@@ -50,24 +36,6 @@ class DepthModel:
         cls._instance.should_delete = not keep_in_vram
         return cls._instance
         
-    def load_midas_model(self, models_path, midas_model_filename):
-        model_file = os.path.join(models_path, midas_model_filename)
-        print("Loading MiDaS model...")
-        self.midas_model = DPTDepthModel(
-            path=model_file,
-            backbone="vitl16_384",
-            non_negative=True,
-        )
-
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-
-        self.midas_transform = T.Compose([
-            Resize(384, 384, resize_target=None, keep_aspect_ratio=True, ensure_multiple_of=32,
-                   resize_method="minimal", image_interpolation_method=cv2.INTER_CUBIC),
-            normalization,
-            PrepareForNet()
-        ])
-
     def _initialize(self, models_path, device, half_precision=True, keep_in_vram=False, use_zoe_depth=False, Width=512, Height=512):
         self.keep_in_vram = keep_in_vram
         self.Width = Width
@@ -90,7 +58,31 @@ class DepthModel:
             self.midas_model.eval().to(self.device, memory_format=torch.channels_last if self.device == torch.device("cuda") else None)
             if half_precision:
                 self.midas_model = self.midas_model.half()
+                
+    def load_midas_model(self, models_path, midas_model_filename):
+        model_file = os.path.join(models_path, midas_model_filename)
+        print("Loading MiDaS model...")
+        self.midas_model = DPTDepthModel(
+            path=model_file,
+            backbone="vitl16_384",
+            non_negative=True,
+        )
 
+        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+
+        self.midas_transform = T.Compose([
+            Resize(384, 384, resize_target=None, keep_aspect_ratio=True, ensure_multiple_of=32,
+                   resize_method="minimal", image_interpolation_method=cv2.INTER_CUBIC),
+            normalization,
+            PrepareForNet()
+        ])
+    def check_and_download_midas_model(self, models_path, midas_model_filename):
+        model_file = os.path.join(models_path, midas_model_filename)
+        if not os.path.exists(model_file):
+            load_file_from_url(r"https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", models_path)
+            if checksum(model_file) != "fcc4829e65d00eeed0a38e9001770676535d2e95c8a16965223aba094936e1316d569563552a852d471f310f83f597e8a238987a26a950d667815e08adaebc06":
+                raise Exception(f"Error while downloading dpt_large-midas-2f21e586.pt. Please download from here: https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt and place in: {models_path}")
+        
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
         use_adabins = midas_weight < 1.0 and self.adabins_helper is not None
 
@@ -119,8 +111,6 @@ class DepthModel:
         return self.zoe_depth.predict(img_pil).to(self.device)
 
     def predict_depth_with_midas(self, prev_img_cv2, half_precision):
-        w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
-
         img_midas = prev_img_cv2.astype(np.float32) / 255.0
         img_midas_input = self.midas_transform({"image": img_midas})["image"]
         sample = torch.from_numpy(img_midas_input).float().to(self.device).unsqueeze(0)
@@ -213,6 +203,13 @@ class DepthModel:
         gc.collect()
         torch.cuda.empty_cache()
         devices.torch_gc()
+    
+    def debug_print(self, message, tensor=None):
+        DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
+        if DEBUG_MODE:
+            print(message)
+            if tensor is not None:
+                print(tensor)
 
 class AdaBinsModel:
     _instance = None
