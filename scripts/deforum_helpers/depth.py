@@ -98,9 +98,9 @@ class DepthModel:
 
         midas_depth = None
         if self.use_zoe_depth:
-            depth_tensor = self.predict_depth_with_zoe_depth(img_pil, use_adabins)
+            depth_tensor = self.predict_depth_with_zoe_depth(img_pil)
         else:
-            depth_tensor, midas_depth = self.predict_depth_with_midas(prev_img_cv2, half_precision)
+            depth_tensor = self.predict_depth_with_midas(prev_img_cv2, half_precision)
 
         self.debug_print("Shape of depth_tensor:", depth_tensor.shape)
         self.debug_print("Tensor data:", depth_tensor)
@@ -110,18 +110,15 @@ class DepthModel:
         if use_adabins:
             use_adabins, adabins_depth = self.predict_adabins_depth(img_pil, prev_img_cv2, use_adabins)
             if use_adabins:
-                depth_tensor = self.blend_depth_maps(depth_tensor, midas_depth, adabins_depth, midas_weight, self.use_zoe_depth)
+                depth_tensor = self.blend_and_align_with_adabins(depth_tensor, adabins_depth, midas_weight, self.use_zoe_depth)
 
         return depth_tensor
 
     def pil_image_from_cv2_image(self, img_cv2):
         return Image.fromarray(cv2.cvtColor(img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
 
-    def predict_depth_with_zoe_depth(self, img_pil, use_adabins):
-        depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
-        if use_adabins:
-            depth_tensor = torch.subtract(50.0, depth_tensor) / 19
-        return depth_tensor
+    def predict_depth_with_zoe_depth(self, img_pil):
+        return self.zoe_depth.predict(img_pil).to(self.device)
 
     def predict_depth_with_midas(self, prev_img_cv2, half_precision):
         w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
@@ -145,11 +142,11 @@ class DepthModel:
         ).squeeze().cpu().numpy()
 
         torch.cuda.empty_cache()
-        midas_depth = np.subtract(50.0, midas_depth) / 19.0
         depth_tensor = torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze().to(self.device)
         
-        return depth_tensor, midas_depth
+        return depth_tensor
 
+    # use_adabins will change to false if we couldn't run adabins!
     def predict_adabins_depth(self, img_pil, prev_img_cv2, use_adabins):
         w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
 
@@ -179,13 +176,10 @@ class DepthModel:
 
         return use_adabins, adabins_depth
         
-    def blend_depth_maps(self, depth_tensor, midas_depth, adabins_depth, midas_weight, use_zoe_depth):
-        if not use_zoe_depth:
-            blended_depth = (midas_depth * midas_weight + adabins_depth * (1.0 - midas_weight))
-            depth_tensor = torch.from_numpy(np.expand_dims(blended_depth, axis=0)).squeeze().to(self.device)
-        else:
-            blended_depth_map = (depth_tensor.cpu().numpy() * midas_weight + adabins_depth * (1.0 - midas_weight))
-            depth_tensor = torch.from_numpy(np.expand_dims(blended_depth_map, axis=0)).squeeze().to(self.device)
+    def blend_and_align_with_adabins(self, depth_tensor, adabins_depth, midas_weight, use_zoe_depth):
+        depth_tensor = torch.subtract(50.0, depth_tensor) / 19.0
+        blended_depth_map = (depth_tensor.cpu().numpy() * midas_weight + adabins_depth * (1.0 - midas_weight))
+        depth_tensor = torch.from_numpy(np.expand_dims(blended_depth_map, axis=0)).squeeze().to(self.device)
         return depth_tensor
 
     def to_image(self, depth: torch.Tensor):
