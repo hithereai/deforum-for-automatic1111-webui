@@ -92,51 +92,70 @@ class DepthModel:
                 self.midas_model = self.midas_model.half()
 
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
-        
         use_adabins = midas_weight < 1.0 and self.adabins_helper is not None
-        
-        img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
-        
+
+        img_pil = self.pil_image_from_cv2_image(prev_img_cv2)
+
+        midas_depth = None
         if self.use_zoe_depth:
-            depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
-            if use_adabins:
-                depth_tensor = torch.subtract(50.0, depth_tensor) / 19
+            depth_tensor = self.predict_depth_with_zoe_depth(img_pil, use_adabins)
         else:
-            w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
+            depth_tensor, midas_depth = self.predict_depth_with_midas(prev_img_cv2, half_precision)
 
-            img_midas = prev_img_cv2.astype(np.float32) / 255.0
-            img_midas_input = self.midas_transform({"image": img_midas})["image"]
-            sample = torch.from_numpy(img_midas_input).float().to(self.device).unsqueeze(0)
-
-            if self.device.type == "cuda" or self.device.type == "mps":
-                sample = sample.to(memory_format=torch.channels_last)
-                if half_precision:
-                    sample = sample.half()
-
-            with torch.no_grad():
-                midas_depth = self.midas_model.forward(sample)
-            midas_depth = torch.nn.functional.interpolate(
-                midas_depth.unsqueeze(1),
-                size=img_midas.shape[:2],
-                mode="bicubic",
-                align_corners=False,
-            ).squeeze().cpu().numpy()
-            
-            self.debug_print("Midas depth tensor before 50/19 calculation:", torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze())
-
-            torch.cuda.empty_cache()
-            midas_depth = np.subtract(50.0, midas_depth) / 19.0
-            depth_tensor = torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze().to(self.device)
-        
         self.debug_print("Shape of depth_tensor:", depth_tensor.shape)
         self.debug_print("Tensor data:", depth_tensor)
 
         w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
 
         if use_adabins:
+            use_adabins, adabins_depth = self.predict_adabins_depth(img_pil, prev_img_cv2, use_adabins)
+            if use_adabins:
+                depth_tensor = self.blend_depth_maps(depth_tensor, midas_depth, adabins_depth, midas_weight, self.use_zoe_depth)
+
+        return depth_tensor
+
+    def pil_image_from_cv2_image(self, img_cv2):
+        return Image.fromarray(cv2.cvtColor(img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
+
+    def predict_depth_with_zoe_depth(self, img_pil, use_adabins):
+        depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
+        if use_adabins:
+            depth_tensor = torch.subtract(50.0, depth_tensor) / 19
+        return depth_tensor
+
+    def predict_depth_with_midas(self, prev_img_cv2, half_precision):
+        w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
+
+        img_midas = prev_img_cv2.astype(np.float32) / 255.0
+        img_midas_input = self.midas_transform({"image": img_midas})["image"]
+        sample = torch.from_numpy(img_midas_input).float().to(self.device).unsqueeze(0)
+
+        if self.device.type == "cuda" or self.device.type == "mps":
+            sample = sample.to(memory_format=torch.channels_last)
+            if half_precision:
+                sample = sample.half()
+
+        with torch.no_grad():
+            midas_depth = self.midas_model.forward(sample)
+        midas_depth = torch.nn.functional.interpolate(
+            midas_depth.unsqueeze(1),
+            size=img_midas.shape[:2],
+            mode="bicubic",
+            align_corners=False,
+        ).squeeze().cpu().numpy()
+
+        torch.cuda.empty_cache()
+        midas_depth = np.subtract(50.0, midas_depth) / 19.0
+        depth_tensor = torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze().to(self.device)
+        
+        return depth_tensor, midas_depth
+
+    def predict_adabins_depth(self, img_pil, prev_img_cv2, use_adabins):
+        w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
+
+        if use_adabins:
             MAX_ADABINS_AREA, MIN_ADABINS_AREA = 500000, 448 * 448
 
-            img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
             image_pil_area, resized = w * h, False
 
             if image_pil_area not in range(MIN_ADABINS_AREA, MAX_ADABINS_AREA + 1):
@@ -158,13 +177,15 @@ class DepthModel:
                 use_adabins = False
             torch.cuda.empty_cache()
 
-            if not self.use_zoe_depth:
-                midas_depth = (midas_depth * midas_weight + adabins_depth * (1.0 - midas_weight))
-                depth_tensor = torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze().to(self.device)
-            else:
-                depth_map = (depth_tensor.cpu().numpy() * midas_weight + adabins_depth * (1.0 - midas_weight))
-                depth_tensor = torch.from_numpy(np.expand_dims(depth_map, axis=0)).squeeze().to(self.device)
-
+        return use_adabins, adabins_depth
+        
+    def blend_depth_maps(self, depth_tensor, midas_depth, adabins_depth, midas_weight, use_zoe_depth):
+        if not use_zoe_depth:
+            blended_depth = (midas_depth * midas_weight + adabins_depth * (1.0 - midas_weight))
+            depth_tensor = torch.from_numpy(np.expand_dims(blended_depth, axis=0)).squeeze().to(self.device)
+        else:
+            blended_depth_map = (depth_tensor.cpu().numpy() * midas_weight + adabins_depth * (1.0 - midas_weight))
+            depth_tensor = torch.from_numpy(np.expand_dims(blended_depth_map, axis=0)).squeeze().to(self.device)
         return depth_tensor
 
     def to_image(self, depth: torch.Tensor):
