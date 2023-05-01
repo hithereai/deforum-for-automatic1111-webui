@@ -51,7 +51,7 @@ class DepthModel:
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
         use_adabins = midas_weight < 1.0 and self.adabins_helper is not None
 
-        img_pil = self.pil_image_from_cv2_image(prev_img_cv2)
+        img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
 
         if self.use_zoe_depth:
             depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
@@ -68,9 +68,6 @@ class DepthModel:
 
         return depth_tensor
 
-    def pil_image_from_cv2_image(self, img_cv2):
-        return Image.fromarray(cv2.cvtColor(img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
-  
     def blend_and_align_with_adabins(self, depth_tensor, adabins_depth, midas_weight, use_zoe_depth):
         depth_tensor = torch.subtract(50.0, depth_tensor) / 19.0
         blended_depth_map = (depth_tensor.cpu().numpy() * midas_weight + adabins_depth * (1.0 - midas_weight))
