@@ -45,6 +45,8 @@ class DepthModel:
 
         if self.depth_algorithm == 'Zoe':
             self.zoe_depth = ZoeDepth(self.Width, self.Height)
+        elif self.depth_algorithm == 'Leres':
+            self.leres_depth = LeReSDepth(width=448, height=448, models_path=models_path, checkpoint_name='res101.pth', backbone='resnext101')
         else:
             self.midas_depth = MidasDepth(models_path, device, half_precision=half_precision)
             
@@ -53,9 +55,14 @@ class DepthModel:
 
         img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
 
+        # currently all depth models are combined with AdaBins!
         if self.depth_algorithm == 'Zoe':
             depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
-        else: # only other working implementation rn is MidasAdaBins (combo of the two)
+        elif self.depth_algorithm == 'Leres':
+            img_leres = prev_img_cv2.astype(np.float32) / 255.0
+            depth_array = self.leres_depth.predict(img_leres)
+            depth_tensor = torch.from_numpy(depth_array).to(self.device) # Convert numpy array to tensor
+        else: # MidasAdaBins (combo of the two)
             depth_tensor = self.midas_depth.predict_depth(prev_img_cv2, half_precision)
 
         self.debug_print("Shape of depth_tensor:", depth_tensor.shape)
