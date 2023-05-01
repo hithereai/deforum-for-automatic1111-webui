@@ -88,23 +88,15 @@ class DepthModel:
     def save(self, filename: str, depth: torch.Tensor):
         self.to_image(depth).save(filename)
 
-    def to(self, device):
-        self.device = device
-        if self.depth_algorithm == 'Zoe':
-            self.zoe_depth.zoe.to(device)
-        else:
-            self.midas_model.to(device)
-        if self.adabins_helper is not None:
-            self.adabins_helper.to(device)
-        gc.collect()
-        torch.cuda.empty_cache()
-
     def delete_model(self):
         if self.depth_algorithm == 'Zoe':
             self.zoe_depth.delete()
             del self.zoe_depth
+        elif self.depth_algorithm == 'Leres':
+            self.leres_depth.delete()
+            del self.leres_depth
         else:
-            del self.midas_model
+            del self.midas_depth
         gc.collect()
         torch.cuda.empty_cache()
         devices.torch_gc()
