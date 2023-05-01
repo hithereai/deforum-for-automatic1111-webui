@@ -98,7 +98,7 @@ class DepthModel:
 
         midas_depth = None
         if self.use_zoe_depth:
-            depth_tensor = self.predict_depth_with_zoe_depth(img_pil)
+            depth_tensor = self.predict_depth_with_zoe(img_pil)
         else:
             depth_tensor = self.predict_depth_with_midas(prev_img_cv2, half_precision)
 
@@ -117,7 +117,7 @@ class DepthModel:
     def pil_image_from_cv2_image(self, img_cv2):
         return Image.fromarray(cv2.cvtColor(img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
 
-    def predict_depth_with_zoe_depth(self, img_pil):
+    def predict_depth_with_zoe(self, img_pil):
         return self.zoe_depth.predict(img_pil).to(self.device)
 
     def predict_depth_with_midas(self, prev_img_cv2, half_precision):
