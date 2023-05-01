@@ -55,13 +55,10 @@ class DepthModel:
 
         img_pil = Image.fromarray(cv2.cvtColor(prev_img_cv2.astype(np.uint8), cv2.COLOR_RGB2BGR))
 
-        # currently all depth models are combined with AdaBins!
         if self.depth_algorithm == 'Zoe':
             depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
         elif self.depth_algorithm == 'Leres':
-            img_leres = prev_img_cv2.astype(np.float32) / 255.0
-            depth_array = self.leres_depth.predict(img_leres)
-            depth_tensor = torch.from_numpy(depth_array).to(self.device) # Convert numpy array to tensor
+            depth_tensor = self.leres_depth.predict(prev_img_cv2.astype(np.float32) / 255.0)
         else: # MidasAdaBins (combo of the two)
             depth_tensor = self.midas_depth.predict_depth(prev_img_cv2, half_precision)
 

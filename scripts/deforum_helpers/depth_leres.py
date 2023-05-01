@@ -39,7 +39,7 @@ class LeReSDepth:
         img_torch = self.scale_torch(resized_image)[None, :, :, :]
         pred_depth = self.depth_model.inference(img_torch).cpu().numpy().squeeze()
         pred_depth_ori = cv2.resize(pred_depth, (image.shape[1], image.shape[0]))
-        return pred_depth_ori
+        return torch.from_numpy(pred_depth_ori).unsqueeze(0).to(self.DEVICE)
 
     def save_raw_depth(self, depth, filepath):
         depth_normalized = (depth / depth.max() * 60000).astype(np.uint16)
