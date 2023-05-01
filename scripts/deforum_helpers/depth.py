@@ -19,6 +19,20 @@ from .ZoeDepth import ZoeDepth
 
 class MidasModel:
     _instance = None
+    
+    def check_and_download_midas_model(self, models_path, model_filename):
+        model_file = os.path.join(models_path, model_filename)
+        if not os.path.exists(model_file):
+            load_file_from_url(r"https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", models_path)
+            if checksum(model_file) != "fcc4829e65d00eeed0a38e9001770676535d2e95c8a16965223aba094936e1316d569563552a852d471f310f83f597e8a238987a26a950d667815e08adaebc06":
+                raise Exception(f"Error while downloading dpt_large-midas-2f21e586.pt. Please download from here: https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt and place in: {models_path}")
+
+    def debug_print(self, message, tensor=None):
+        DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
+        if DEBUG_MODE:
+            print(message)
+            if tensor is not None:
+                print(tensor)
 
     def __new__(cls, *args, **kwargs):
         keep_in_vram = kwargs.get('keep_in_vram', False)
@@ -49,11 +63,8 @@ class MidasModel:
         if self.use_zoe_depth:
             self.zoe_depth = ZoeDepth(self.Width, self.Height)
         if not self.use_zoe_depth:
-            model_file = os.path.join(models_path, 'dpt_large-midas-2f21e586.pt')
-            if not os.path.exists(model_file):
-                load_file_from_url(r"https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt", models_path)
-                if checksum(model_file) != "fcc4829e65d00eeed0a38e9001770676535d2e95c8a16965223aba094936e1316d569563552a852d471f310f83f597e8a238987a26a950d667815e08adaebc06":
-                    raise Exception(r"Error while downloading dpt_large-midas-2f21e586.pt. Please download from here: https://github.com/intel-isl/DPT/releases/download/1_0/dpt_large-midas-2f21e586.pt and place in: " + models_path)
+            midas_model_filename = 'dpt_large-midas-2f21e586.pt'
+            self.check_and_download_midas_model(models_path, midas_model_filename)
 
             if not self.keep_in_vram or not hasattr(self, 'midas_model'):
                 print("Loading MiDaS model...")
@@ -77,7 +88,6 @@ class MidasModel:
                 self.midas_model = self.midas_model.half()
 
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
-        DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
         
         use_adabins = midas_weight < 1.0 and self.adabins_helper is not None
         
@@ -108,18 +118,14 @@ class MidasModel:
                 align_corners=False,
             ).squeeze().cpu().numpy()
             
-            if DEBUG_MODE:
-                print("Midas depth tensor before 50/19 calculation:")
-                print(torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze())
+            self.debug_print("Midas depth tensor before 50/19 calculation:", torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze())
 
             torch.cuda.empty_cache()
             midas_depth = np.subtract(50.0, midas_depth) / 19.0
             depth_tensor = torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze().to(self.device)
         
-        if DEBUG_MODE:
-            print("Shape of depth_tensor:", depth_tensor.shape)
-            print("Tensor data:")
-            print(depth_tensor)
+        self.debug_print("Shape of depth_tensor:", depth_tensor.shape)
+        self.debug_print("Tensor data:", depth_tensor)
 
         w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
 
