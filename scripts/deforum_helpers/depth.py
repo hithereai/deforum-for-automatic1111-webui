@@ -17,7 +17,7 @@ from modules import lowvram, devices
 from modules.shared import opts
 from .ZoeDepth import ZoeDepth
 
-class MidasModel:
+class DepthModel:
     _instance = None
     
     def check_and_download_midas_model(self, models_path, model_filename):
