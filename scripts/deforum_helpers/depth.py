@@ -105,8 +105,6 @@ class DepthModel:
         self.debug_print("Shape of depth_tensor:", depth_tensor.shape)
         self.debug_print("Tensor data:", depth_tensor)
 
-        # w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
-
         if use_adabins: # need to use AdaBins. first, try to get adabins depth estimation from our image
             use_adabins, adabins_depth = self.predict_adabins_depth(img_pil, prev_img_cv2, use_adabins)
             if use_adabins: # if there was no error in getting the depth, align other depths (midas/zoe/leres) with adabins' depth
