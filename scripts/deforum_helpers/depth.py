@@ -46,7 +46,7 @@ class DepthModel:
             self.zoe_depth = ZoeDepth(self.Width, self.Height)
         elif self.depth_algorithm == 'Leres':
             self.leres_depth = LeReSDepth(width=448, height=448, models_path=models_path, checkpoint_name='res101.pth', backbone='resnext101')
-        else:
+        else: # Midas
             self.midas_depth = MidasDepth(models_path, device, half_precision=half_precision)
             
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
