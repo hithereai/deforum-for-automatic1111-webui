@@ -82,6 +82,17 @@ class DepthModel:
         depth_tensor = torch.from_numpy(np.expand_dims(blended_depth_map, axis=0)).squeeze().to(self.device)
         return depth_tensor
         
+    def to(self, device):
+        self.device = device
+        if self.depth_algorithm == 'Zoe':
+            self.zoe_depth.zoe.to(device)
+        else:
+            self.midas_depth.to(device)
+        if hasattr(self, 'adabins_model'):
+            self.adabins_model.to(device)
+        gc.collect()
+        torch.cuda.empty_cache()
+        
     def to_image(self, depth: torch.Tensor):
         depth = depth.cpu().numpy()
         depth = np.expand_dims(depth, axis=0) if len(depth.shape) == 2 else depth

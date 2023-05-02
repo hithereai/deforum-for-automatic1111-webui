@@ -1,11 +1,11 @@
 import os
 import torch
+import gc
 from infer import InferenceHelper
 from basicsr.utils.download_util import load_file_from_url
 from modules import devices
 import numpy as np
 from .general_utils import checksum
-
 
 class AdaBinsModel:
     _instance = None
@@ -57,6 +57,13 @@ class AdaBinsModel:
             torch.cuda.empty_cache()
 
         return use_adabins, adabins_depth
+        
+    def to(self, device):
+        self.device = device
+        if self.adabins_helper is not None:
+            self.adabins_helper.to(device)
+        gc.collect()
+        torch.cuda.empty_cache()
 
     def delete_model(self):
         del self.adabins_helper

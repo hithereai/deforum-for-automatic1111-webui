@@ -21,7 +21,13 @@ class ZoeDepth:
         self.zoe.core.prep.resizer._Resize__height = self.height
         depth_tensor = self.zoe.infer_pil(image, output_type="tensor")
         return depth_tensor
-
+        
+    def to(self, device):
+        self.DEVICE = device
+        self.zoe = self.model_zoe.to(device)
+        gc.collect()
+        torch.cuda.empty_cache()
+        
     def save_raw_depth(self, depth, filepath):
         depth.save(filepath, format='PNG', mode='I;16')
 

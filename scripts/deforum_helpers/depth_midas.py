@@ -1,6 +1,7 @@
 import os
 import cv2
 import torch
+import gc
 import numpy as np
 from basicsr.utils.download_util import load_file_from_url
 from .general_utils import checksum
@@ -65,3 +66,9 @@ class MidasDepth:
         depth_tensor = torch.from_numpy(np.expand_dims(midas_depth, axis=0)).squeeze().to(self.device)
 
         return depth_tensor
+        
+    def to(self, device):
+        self.device = device
+        self.midas_model = self.midas_model.to(device, memory_format=torch.channels_last if device == torch.device("cuda") else None)
+        gc.collect()
+        torch.cuda.empty_cache()
