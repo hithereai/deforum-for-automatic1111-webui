@@ -25,8 +25,6 @@ class ZoeDepth:
     def to(self, device):
         self.DEVICE = device
         self.zoe = self.model_zoe.to(device)
-        gc.collect()
-        torch.cuda.empty_cache()
         
     def save_raw_depth(self, depth, filepath):
         depth.save(filepath, format='PNG', mode='I;16')

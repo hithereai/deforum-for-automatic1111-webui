@@ -62,8 +62,6 @@ class AdaBinsModel:
         self.device = device
         if self.adabins_helper is not None:
             self.adabins_helper.to(device)
-        gc.collect()
-        torch.cuda.empty_cache()
 
     def delete_model(self):
         del self.adabins_helper

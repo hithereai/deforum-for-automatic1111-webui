@@ -70,5 +70,3 @@ class MidasDepth:
     def to(self, device):
         self.device = device
         self.midas_model = self.midas_model.to(device, memory_format=torch.channels_last if device == torch.device("cuda") else None)
-        gc.collect()
-        torch.cuda.empty_cache()
