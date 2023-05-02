@@ -21,22 +21,22 @@ class DepthModel:
             keep_in_vram = kwargs.get('keep_in_vram', False)
             depth_algorithm = kwargs.get('depth_algorithm', 'Midas')
             Width, Height = kwargs.get('Width', 512), kwargs.get('Height', 512)
+            midas_weight = kwargs.get('midas_weight', 0.2)
             model_switched = cls._instance and cls._instance.depth_algorithm != depth_algorithm
             resolution_changed = cls._instance and (cls._instance.Width != Width or cls._instance.Height != Height)
 
             if cls._instance is None or (not keep_in_vram and not hasattr(cls._instance, 'midas_model')) or model_switched or resolution_changed:
                 cls._instance = super().__new__(cls)
-                cls._instance._initialize(models_path=args[0], device=args[1], half_precision=True, keep_in_vram=keep_in_vram, depth_algorithm=depth_algorithm, Width=Width, Height=Height)
+                cls._instance._initialize(models_path=args[0], device=args[1], half_precision=True, keep_in_vram=keep_in_vram, depth_algorithm=depth_algorithm, Width=Width, Height=Height, midas_weight=midas_weight)
             elif cls._instance.should_delete and keep_in_vram:
-                cls._instance._initialize(models_path=args[0], device=args[1], half_precision=True, keep_in_vram=keep_in_vram, depth_algorithm=depth_algorithm, Width=Width, Height=Height)
+                cls._instance._initialize(models_path=args[0], device=args[1], half_precision=True, keep_in_vram=keep_in_vram, depth_algorithm=depth_algorithm, Width=Width, Height=Height, midas_weight=midas_weight)
             cls._instance.should_delete = not keep_in_vram
             return cls._instance
 
-    def _initialize(self, models_path, device, half_precision=True, keep_in_vram=False, depth_algorithm='midas', Width=512, Height=512):
+    def _initialize(self, models_path, device, half_precision=True, keep_in_vram=False, depth_algorithm='midas', Width=512, Height=512, midas_weight=1.0):
         self.keep_in_vram = keep_in_vram
         self.Width = Width
         self.Height = Height
-        self.adabins_helper = None
         self.depth_min = 1000
         self.depth_max = -1000
         self.device = device
@@ -48,6 +48,11 @@ class DepthModel:
             self.leres_depth = LeReSDepth(width=448, height=448, models_path=models_path, checkpoint_name='res101.pth', backbone='resnext101')
         else: # Midas
             self.midas_depth = MidasDepth(models_path, device, half_precision=half_precision)
+        if midas_weight < 1.0:
+            self.adabins_model = AdaBinsModel(models_path, keep_in_vram=keep_in_vram)
+            self.adabins_helper = self.adabins_model.adabins_helper
+        else:
+            self.adabins_helper = None
             
     def predict(self, prev_img_cv2, midas_weight, half_precision) -> torch.Tensor:
         use_adabins = midas_weight < 1.0 and self.adabins_helper is not None
@@ -97,6 +102,8 @@ class DepthModel:
             del self.leres_depth
         else:
             del self.midas_depth
+        if hasattr(self, 'adabins_model'):
+            self.adabins_model.delete_model()
         gc.collect()
         torch.cuda.empty_cache()
         devices.torch_gc()
