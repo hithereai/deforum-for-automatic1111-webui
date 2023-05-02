@@ -8,7 +8,7 @@ import torchvision.transforms as T
 from einops import rearrange, repeat
 from PIL import Image
 from modules import lowvram, devices
-from modules.shared import opts
+from modules.shared import opts, cmd_opts
 from .depth_midas import MidasDepth
 from .depth_zoe import ZoeDepth
 from .depth_leres import LeReSDepth
@@ -27,13 +27,13 @@ class DepthModel:
 
             if cls._instance is None or (not keep_in_vram and not hasattr(cls._instance, 'midas_model')) or model_switched or resolution_changed:
                 cls._instance = super().__new__(cls)
-                cls._instance._initialize(models_path=args[0], device=args[1], half_precision=True, keep_in_vram=keep_in_vram, depth_algorithm=depth_algorithm, Width=Width, Height=Height, midas_weight=midas_weight)
+                cls._instance._initialize(models_path=args[0], device=args[1], half_precision=not cmd_opts.no_half, keep_in_vram=keep_in_vram, depth_algorithm=depth_algorithm, Width=Width, Height=Height, midas_weight=midas_weight)
             elif cls._instance.should_delete and keep_in_vram:
-                cls._instance._initialize(models_path=args[0], device=args[1], half_precision=True, keep_in_vram=keep_in_vram, depth_algorithm=depth_algorithm, Width=Width, Height=Height, midas_weight=midas_weight)
+                cls._instance._initialize(models_path=args[0], device=args[1], half_precision=not cmd_opts.no_half, keep_in_vram=keep_in_vram, depth_algorithm=depth_algorithm, Width=Width, Height=Height, midas_weight=midas_weight)
             cls._instance.should_delete = not keep_in_vram
             return cls._instance
 
-    def _initialize(self, models_path, device, half_precision=True, keep_in_vram=False, depth_algorithm='midas', Width=512, Height=512, midas_weight=1.0):
+    def _initialize(self, models_path, device, half_precision=not cmd_opts.no_half, keep_in_vram=False, depth_algorithm='midas', Width=512, Height=512, midas_weight=1.0):
         self.keep_in_vram = keep_in_vram
         self.Width = Width
         self.Height = Height
