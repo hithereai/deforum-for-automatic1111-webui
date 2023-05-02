@@ -63,11 +63,11 @@ class DepthModel:
             depth_tensor = self.zoe_depth.predict(img_pil).to(self.device)
         elif self.depth_algorithm == 'Leres':
             depth_tensor = self.leres_depth.predict(prev_img_cv2.astype(np.float32) / 255.0)
-        else: # MidasAdaBins (combo of the two)
+        else: # Midas
             depth_tensor = self.midas_depth.predict_depth(prev_img_cv2, half_precision)
 
-        self.debug_print("Shape of depth_tensor:", depth_tensor.shape)
-        self.debug_print("Tensor data:", depth_tensor)
+        self.debug_print(f"Shape of {self.depth_algorithm} depth_tensor: {depth_tensor.shape}")
+        self.debug_print(f"Tensor data: {depth_tensor}")
         
         if use_adabins: # need to use AdaBins. first, try to get adabins depth estimation from our image
             use_adabins, adabins_depth = AdaBinsModel._instance.predict(img_pil, prev_img_cv2, use_adabins)
@@ -100,7 +100,7 @@ class DepthModel:
         elif self.depth_algorithm == 'Leres':
             self.leres_depth.delete()
             del self.leres_depth
-        else:
+        else: # Midas
             del self.midas_depth
         if hasattr(self, 'adabins_model'):
             self.adabins_model.delete_model()
@@ -108,9 +108,7 @@ class DepthModel:
         torch.cuda.empty_cache()
         devices.torch_gc()
     
-    def debug_print(self, message, tensor=None):
+    def debug_print(self, message):
         DEBUG_MODE = opts.data.get("deforum_debug_mode_enabled", False)
         if DEBUG_MODE:
             print(message)
-            if tensor is not None:
-                print(tensor)
