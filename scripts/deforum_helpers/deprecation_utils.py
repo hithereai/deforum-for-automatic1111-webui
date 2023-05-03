@@ -1,6 +1,5 @@
 # This file is used to map deprecated setting names in a dictionary
 # and print a message containing the old and the new names
-# if the latter is removed completely, put a warning
 cn_models = 5
 
 deprecation_map = {
