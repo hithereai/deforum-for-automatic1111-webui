@@ -5,7 +5,7 @@ import pandas as pd
 from .prompt import check_is_number
 
 class DeformAnimKeys():
-    def __init__(self, anim_args, seed=-1):
+    def __init__(self, anim_args, controlnet_args, seed=-1):
         self.fi = FrameInterpolater(anim_args.max_frames, seed)
         self.angle_series = self.fi.get_inbetweens(self.fi.parse_key_frames(anim_args.angle))
         self.transform_center_x_series = self.fi.get_inbetweens(self.fi.parse_key_frames(anim_args.transform_center_x))
@@ -52,6 +52,11 @@ class DeformAnimKeys():
         self.hybrid_comp_mask_auto_contrast_cutoff_high_schedule_series = self.fi.get_inbetweens(self.fi.parse_key_frames(anim_args.hybrid_comp_mask_auto_contrast_cutoff_high_schedule))
         self.hybrid_comp_mask_auto_contrast_cutoff_low_schedule_series = self.fi.get_inbetweens(self.fi.parse_key_frames(anim_args.hybrid_comp_mask_auto_contrast_cutoff_low_schedule))
         self.hybrid_flow_factor_schedule_series = self.fi.get_inbetweens(self.fi.parse_key_frames(anim_args.hybrid_flow_factor_schedule))
+        self.cn_1_weight_schedule_series = self.fi.get_inbetweens(self.fi.parse_key_frames(controlnet_args.cn_1_weight))
+        self.cn_2_weight_schedule_series = self.fi.get_inbetweens(self.fi.parse_key_frames(controlnet_args.cn_2_weight))
+        self.cn_3_weight_schedule_series = self.fi.get_inbetweens(self.fi.parse_key_frames(controlnet_args.cn_3_weight))
+        self.cn_4_weight_schedule_series = self.fi.get_inbetweens(self.fi.parse_key_frames(controlnet_args.cn_4_weight))
+        self.cn_5_weight_schedule_series = self.fi.get_inbetweens(self.fi.parse_key_frames(controlnet_args.cn_5_weight))
 
 class LooperAnimKeys():
     def __init__(self, loop_args, anim_args, seed):

@@ -71,7 +71,7 @@ def setup_controlnet_ui_raw():
             refresh_models = ToolButton(value=refresh_symbol)
             refresh_models.click(refresh_all_models, model, model)
         with gr.Row(visible=False) as weight_row:
-            weight = gr.Slider(label=f"Weight", value=1.0, minimum=0.0, maximum=2.0, step=.05, interactive=True)
+            weight = gr.Textbox(label="Weight", lines=1, value = '0:(1)', interactive=True)
             guidance_start =  gr.Slider(label="Starting Control Step", value=0.0, minimum=0.0, maximum=1.0, interactive=True)
             guidance_end =  gr.Slider(label="Ending Control Step", value=1.0, minimum=0.0, maximum=1.0, interactive=True)
             model_dropdowns.append(model)
@@ -145,7 +145,7 @@ def controlnet_component_names():
         'processor_res', 'threshold_a', 'threshold_b', 'resize_mode', 'control_mode'
     ]]
     
-def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root, is_img2img=True, frame_idx=1):
+def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root, keys, is_img2img=True, frame_idx=0):
     def read_cn_data(cn_idx):
         cn_mask_np, cn_image_np = None, None
         cn_inputframes = os.path.join(args.outdir, f'controlnet_{cn_idx}_inputframes') # set input frames folder path
@@ -180,18 +180,22 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
 
     p.scripts = scripts.scripts_img2img if is_img2img else scripts.scripts_txt2img
 
-    def create_cnu_dict(cn_args, prefix, img_np, mask_np):
+    def create_cnu_dict(cn_args, prefix, img_np, mask_np, frame_idx, anim_keys):
         keys = [
             "enabled", "module", "model", "weight", "resize_mode", "control_mode", "low_vram","pixel_perfect",
             "processor_res", "threshold_a", "threshold_b", "guidance_start", "guidance_end"
         ]
         cnu = {k: getattr(cn_args, f"{prefix}_{k}") for k in keys}
+        # Dynamic weight assignment for models 1 to 5
+        model_num = int(prefix.split('_')[-1])  # Extract model number from prefix (e.g., "cn_1" -> 1)
+        if 1 <= model_num <= 5:
+            cnu['weight'] = getattr(anim_keys, f"cn_{model_num}_weight_schedule_series")[frame_idx-1]
         cnu['image'] = {'image': img_np, 'mask': mask_np} if mask_np is not None else img_np
         return cnu
 
     masks_np, images_np = zip(*cn_data)
 
-    cn_units = [cnet.ControlNetUnit(**create_cnu_dict(controlnet_args, f"cn_{i+1}", img_np, mask_np))
+    cn_units = [cnet.ControlNetUnit(**create_cnu_dict(controlnet_args, f"cn_{i+1}", img_np, mask_np, frame_idx, keys))
             for i, (img_np, mask_np) in enumerate(zip(images_np, masks_np))]
 
     p.script_args = {"enabled": True} 
