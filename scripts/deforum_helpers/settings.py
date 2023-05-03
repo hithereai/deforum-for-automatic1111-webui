@@ -179,7 +179,6 @@ class DeforumTQDM:
         self._anim_args = anim_args
         self._parseq_args = parseq_args
         self._video_args = video_args
-        # self._controlnet_args = controlnet_args
 
     def reset(self):
         from .animation_key_frames import DeformAnimKeys
