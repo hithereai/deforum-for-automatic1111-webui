@@ -195,7 +195,7 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
         
         keys = [
             "enabled", "module", "model", "weight", "resize_mode", "control_mode", "low_vram","pixel_perfect",
-            "processor_res", "threshold_a", "threshold_b", "guidance_start", "guidance_end", "loopback_mode"
+            "processor_res", "threshold_a", "threshold_b", "guidance_start", "guidance_end"
         ]
         cnu = {k: getattr(cn_args, f"{prefix}_{k}") for k in keys}
         # Dynamic weight assignment for models 1 to 5
@@ -207,6 +207,7 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
             cnu['guidance_start'] = getattr(CnSchKeys, f"cn_{model_num}_guidance_start_schedule_series")[frame_idx]
             cnu['guidance_end'] = getattr(CnSchKeys, f"cn_{model_num}_guidance_end_schedule_series")[frame_idx]
         cnu['image'] = {'image': img_np, 'mask': mask_np} if mask_np is not None else img_np
+
         return cnu
 
     masks_np, images_np = zip(*cn_data)
