@@ -25,7 +25,7 @@ from deforum_helpers.save_images import dump_frames_cache, reset_frames_cache
 from deforum_helpers.frame_interpolation import process_video_interpolation
 
 import modules.scripts as wscripts
-from modules import script_callbacks
+from modules import script_callbacks, ui_components
 import gradio as gr
 import json
 import traceback
@@ -146,21 +146,11 @@ def run_deforum(*args, **kwargs):
         if video_args.skip_video_creation:
             print("\nSkipping video creation, uncheck 'Skip video for run all' in 'Output' tab if you want to get a video too :)")
         else:
-            import subprocess
+            import subprocess # DO WE USE IT?
 
-            path_name_modifier = video_args.path_name_modifier
-            if video_args.render_steps: # render steps from a single image
-                fname = f"{path_name_modifier}_%09d.png"
-                all_step_dirs = [os.path.join(args.outdir, d) for d in os.listdir(args.outdir) if os.path.isdir(os.path.join(args.outdir,d))]
-                newest_dir = max(all_step_dirs, key=os.path.getmtime)
-                image_path = os.path.join(newest_dir, fname)
-                print(f"Reading images from {image_path}")
-                mp4_path = os.path.join(newest_dir, f"{args.timestring}_{path_name_modifier}.mp4")
-                max_video_frames = args.steps
-            else: # render images for a video
-                image_path = os.path.join(args.outdir, f"{args.timestring}_%09d.png")
-                mp4_path = os.path.join(args.outdir, f"{args.timestring}.mp4")
-                max_video_frames = anim_args.max_frames
+            image_path = os.path.join(args.outdir, f"{args.timestring}_%09d.png")
+            mp4_path = os.path.join(args.outdir, f"{args.timestring}.mp4")
+            max_video_frames = anim_args.max_frames
 
             # Stitch video using ffmpeg!
             try:
@@ -357,7 +347,7 @@ def on_ui_settings():
     shared.opts.add_option("deforum_ffmpeg_preset", shared.OptionInfo('slow', "FFmpeg Preset", gr.Dropdown, {"interactive": True, "choices": ['veryslow', 'slower', 'slow', 'medium', 'fast', 'faster', 'veryfast', 'superfast', 'ultrafast']}, section=section))
     shared.opts.add_option("deforum_debug_mode_enabled", shared.OptionInfo(False, "Enable Dev mode - adds extra reporting in console", gr.Checkbox, {"interactive": True}, section=section))
     shared.opts.add_option("deforum_save_gen_info_as_srt", shared.OptionInfo(False, "Save an .srt (subtitles) file with the generation info along with each animation", gr.Checkbox, {"interactive": True}, section=section))  
-    shared.opts.add_option("deforum_save_gen_info_as_srt_params", shared.OptionInfo(['Noise Schedule'], "Choose which animation params are to be saved to the .srt file (Frame # and Seed will always be saved):", gr.CheckboxGroup, {"interactive": True, "choices": srt_ui_params}, section=section))  
+    shared.opts.add_option("deforum_save_gen_info_as_srt_params", shared.OptionInfo(['Noise Schedule'], "Choose which animation params are to be saved to the .srt file (Frame # and Seed will always be saved):", ui_components.DropdownMulti, lambda: {"interactive": True, "choices": srt_ui_params}, section=section))  
         
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)
