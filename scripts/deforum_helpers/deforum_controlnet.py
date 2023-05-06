@@ -250,7 +250,7 @@ def unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, 
     for i in range(1, num_of_models+1):
         # LoopBack mode is enabled, no need to extract a video or copy an init image
         if getattr(controlnet_args, f'cn_{i}_loopback_mode'):
-            print(f"ControlNet #{i} is in LoopBack mode, ignoring video/ image extraction stage.")
+            print(f"ControlNet #{i} is in LoopBack mode, skipping video/ image extraction stage.")
             continue
         vid_path = clean_gradio_path_strings(getattr(controlnet_args, f'cn_{i}_vid_path', None))
         mask_path = clean_gradio_path_strings(getattr(controlnet_args, f'cn_{i}_mask_vid_path', None))
