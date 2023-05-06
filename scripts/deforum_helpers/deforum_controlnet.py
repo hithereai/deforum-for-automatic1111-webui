@@ -203,9 +203,9 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
         if 1 <= model_num <= 5:
             if getattr(cn_args, f"cn_{model_num}_loopback_mode") and frame_idx == 1:
                 cnu['enabled'] = False
-            cnu['weight'] = getattr(CnSchKeys, f"cn_{model_num}_weight_schedule_series")[frame_idx-1]
-            cnu['guidance_start'] = getattr(CnSchKeys, f"cn_{model_num}_guidance_start_schedule_series")[frame_idx-1]
-            cnu['guidance_end'] = getattr(CnSchKeys, f"cn_{model_num}_guidance_end_schedule_series")[frame_idx-1]
+            cnu['weight'] = getattr(CnSchKeys, f"cn_{model_num}_weight_schedule_series")[frame_idx]
+            cnu['guidance_start'] = getattr(CnSchKeys, f"cn_{model_num}_guidance_start_schedule_series")[frame_idx]
+            cnu['guidance_end'] = getattr(CnSchKeys, f"cn_{model_num}_guidance_end_schedule_series")[frame_idx]
         cnu['image'] = {'image': img_np, 'mask': mask_np} if mask_np is not None else img_np
         return cnu
 
