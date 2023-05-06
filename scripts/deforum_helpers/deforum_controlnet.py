@@ -87,7 +87,9 @@ def setup_controlnet_ui_raw():
             control_mode = gr.Radio(choices=["Balanced", "My prompt is more important", "ControlNet is more important"], value="Balanced", label="Control Mode", interactive=True)            
         with gr.Row(visible=False) as env_row:
             resize_mode = gr.Radio(choices=["Outer Fit (Shrink to Fit)", "Inner Fit (Scale to Fit)", "Just Resize"], value="Inner Fit (Scale to Fit)", label="Resize Mode", interactive=True)
-        hide_output_list = [pixel_perfect,low_vram,mod_row,module,weight_row,env_row,overwrite_frames,vid_path_row,control_mode_row, mask_vid_path_row] # add mask_vid_path_row when masks are working again
+        with gr.Row(visible=False) as control_loopback_row:
+            loopback_mode = gr.Checkbox(label="LoopBack mode", value=False, interactive=True)
+        hide_output_list = [pixel_perfect,low_vram,mod_row,module,weight_row,env_row,overwrite_frames,vid_path_row,control_mode_row, mask_vid_path_row, control_loopback_row] # add mask_vid_path_row when masks are working again
         for cn_output in hide_output_list:
             enabled.change(fn=hide_ui_by_cn_status, inputs=enabled,outputs=cn_output)
         module.change(build_sliders, inputs=[module, pixel_perfect], outputs=[processor_res, threshold_a, threshold_b, advanced_column])
@@ -101,7 +103,7 @@ def setup_controlnet_ui_raw():
         return {key: value for key, value in locals().items() if key in [
             "enabled", "pixel_perfect","low_vram", "module", "model", "weight",
             "guidance_start", "guidance_end", "processor_res", "threshold_a", "threshold_b", "resize_mode", "control_mode",
-            "overwrite_frames", "vid_path", "mask_vid_path"
+            "overwrite_frames", "vid_path", "mask_vid_path", "loopback_mode"
         ]}
         
     def refresh_all_models(*inputs):
@@ -142,33 +144,37 @@ def controlnet_component_names():
         'overwrite_frames', 'vid_path', 'mask_vid_path', 'enabled',
         'low_vram', 'pixel_perfect',
         'module', 'model', 'weight', 'guidance_start', 'guidance_end',
-        'processor_res', 'threshold_a', 'threshold_b', 'resize_mode', 'control_mode'
+        'processor_res', 'threshold_a', 'threshold_b', 'resize_mode', 'control_mode', 'loopback_mode'
     ]]
     
 def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root, is_img2img=True, frame_idx=1):
     CnSchKeys = ControlNetKeys(anim_args, controlnet_args)
     def read_cn_data(cn_idx):
         cn_mask_np, cn_image_np = None, None
-        cn_inputframes = os.path.join(args.outdir, f'controlnet_{cn_idx}_inputframes') # set input frames folder path
-        if os.path.exists(cn_inputframes):
-            if count_files_in_folder(cn_inputframes) == 1:
-                cn_frame_path = os.path.join(cn_inputframes, "000000001.jpg")
-                print(f'Reading ControlNet *static* base frame at {cn_frame_path}')
-            else:
-                cn_frame_path = os.path.join(cn_inputframes, f"{frame_idx:09}.jpg")
-                print(f'Reading ControlNet {cn_idx} base frame #{frame_idx} at {cn_frame_path}')
-            if os.path.exists(cn_frame_path):
-                cn_image_np = np.array(Image.open(cn_frame_path).convert("RGB")).astype('uint8')
-        cn_maskframes = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes') # set mask frames folder path        
-        if os.path.exists(cn_maskframes):
-            if count_files_in_folder(cn_maskframes) == 1:
-                cn_mask_frame_path = os.path.join(cn_inputframes, "000000001.jpg")
-                print(f'Reading ControlNet *static* mask frame at {cn_mask_frame_path}')
-            else:
-                cn_mask_frame_path = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes', f"{frame_idx:09}.jpg")
-                print(f'Reading ControlNet {cn_idx} mask frame #{frame_idx} at {cn_mask_frame_path}')
-            if os.path.exists(cn_mask_frame_path):
-                cn_mask_np = np.array(Image.open(cn_mask_frame_path).convert("RGB")).astype('uint8')
+        if getattr(controlnet_args, f'cn_{cn_idx}_loopback_mode') and args.init_sample and frame_idx > 1:
+            cn_mask_np = None
+            cn_image_np = np.array(args.init_sample).astype('uint8')
+        else:
+            cn_inputframes = os.path.join(args.outdir, f'controlnet_{cn_idx}_inputframes') # set input frames folder path
+            if os.path.exists(cn_inputframes):
+                if count_files_in_folder(cn_inputframes) == 1:
+                    cn_frame_path = os.path.join(cn_inputframes, "000000001.jpg")
+                    print(f'Reading ControlNet *static* base frame at {cn_frame_path}')
+                else:
+                    cn_frame_path = os.path.join(cn_inputframes, f"{frame_idx:09}.jpg")
+                    print(f'Reading ControlNet {cn_idx} base frame #{frame_idx} at {cn_frame_path}')
+                if os.path.exists(cn_frame_path):
+                    cn_image_np = np.array(Image.open(cn_frame_path).convert("RGB")).astype('uint8')
+            cn_maskframes = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes') # set mask frames folder path        
+            if os.path.exists(cn_maskframes):
+                if count_files_in_folder(cn_maskframes) == 1:
+                    cn_mask_frame_path = os.path.join(cn_inputframes, "000000001.jpg")
+                    print(f'Reading ControlNet *static* mask frame at {cn_mask_frame_path}')
+                else:
+                    cn_mask_frame_path = os.path.join(args.outdir, f'controlnet_{cn_idx}_maskframes', f"{frame_idx:09}.jpg")
+                    print(f'Reading ControlNet {cn_idx} mask frame #{frame_idx} at {cn_mask_frame_path}')
+                if os.path.exists(cn_mask_frame_path):
+                    cn_mask_np = np.array(Image.open(cn_mask_frame_path).convert("RGB")).astype('uint8')
 
         return cn_mask_np, cn_image_np
 
@@ -185,12 +191,15 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
         
         keys = [
             "enabled", "module", "model", "weight", "resize_mode", "control_mode", "low_vram","pixel_perfect",
-            "processor_res", "threshold_a", "threshold_b", "guidance_start", "guidance_end"
+            "processor_res", "threshold_a", "threshold_b", "guidance_start", "guidance_end", "loopback_mode"
         ]
         cnu = {k: getattr(cn_args, f"{prefix}_{k}") for k in keys}
         # Dynamic weight assignment for models 1 to 5
         model_num = int(prefix.split('_')[-1])  # Extract model number from prefix (e.g., "cn_1" -> 1)
         if 1 <= model_num <= 5:
+            if getattr(cn_args, f"cn_{model_num}_loopback_mode") and frame_idx == 1:
+                print("SETTING CN FALSE FOR FIRST FRAME")
+                cnu['enabled'] = False
             cnu['weight'] = getattr(CnSchKeys, f"cn_{model_num}_weight_schedule_series")[frame_idx-1]
             cnu['guidance_start'] = getattr(CnSchKeys, f"cn_{model_num}_guidance_start_schedule_series")[frame_idx-1]
             cnu['guidance_end'] = getattr(CnSchKeys, f"cn_{model_num}_guidance_end_schedule_series")[frame_idx-1]
@@ -236,6 +245,10 @@ def unpack_controlnet_vids(args, anim_args, video_args, parseq_args, loop_args, 
     # this func gets called from render.py once for an entire animation run -->
     # tries to trigger an extraction of CN input frames (regular + masks) from video or image
     for i in range(1, num_of_models+1):
+        # LoopBack mode is enabled, no need to extract a video or copy an init image
+        if getattr(controlnet_args, f'cn_{i}_loopback_mode'):
+            print(f"ControlNet #{i} is in LoopBack mode, ignoring video/ image extraction stage.")
+            continue
         vid_path = clean_gradio_path_strings(getattr(controlnet_args, f'cn_{i}_vid_path', None))
         mask_path = clean_gradio_path_strings(getattr(controlnet_args, f'cn_{i}_mask_vid_path', None))
 
