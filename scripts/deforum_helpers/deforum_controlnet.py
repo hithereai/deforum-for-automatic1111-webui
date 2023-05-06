@@ -180,9 +180,13 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
 
     cnet = find_controlnet()
     cn_data = [read_cn_data(i) for i in range(1, num_of_models+1)]
+    
+    # Check if any loopback_mode is set to True
+    any_loopback_mode = any(getattr(controlnet_args, f'cn_{i}_loopback_mode') for i in range(1, num_of_models + 1))
+    
     cn_inputframes_list = [os.path.join(args.outdir, f'controlnet_{i}_inputframes') for i in range(1, num_of_models+1)]
 
-    if not any(os.path.exists(cn_inputframes) for cn_inputframes in cn_inputframes_list):
+    if not any(os.path.exists(cn_inputframes) for cn_inputframes in cn_inputframes_list) and not any_loopback_mode:
         print(f'\033[33mNeither the base nor the masking frames for ControlNet were found. Using the regular pipeline\033[0m')
 
     p.scripts = scripts.scripts_img2img if is_img2img else scripts.scripts_txt2img
@@ -198,7 +202,6 @@ def process_with_controlnet(p, args, anim_args, loop_args, controlnet_args, root
         model_num = int(prefix.split('_')[-1])  # Extract model number from prefix (e.g., "cn_1" -> 1)
         if 1 <= model_num <= 5:
             if getattr(cn_args, f"cn_{model_num}_loopback_mode") and frame_idx == 1:
-                print("SETTING CN FALSE FOR FIRST FRAME")
                 cnu['enabled'] = False
             cnu['weight'] = getattr(CnSchKeys, f"cn_{model_num}_weight_schedule_series")[frame_idx-1]
             cnu['guidance_start'] = getattr(CnSchKeys, f"cn_{model_num}_guidance_start_schedule_series")[frame_idx-1]
