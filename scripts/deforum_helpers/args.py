@@ -4,6 +4,8 @@ from modules.ui_components import FormRow
 import modules.shared as sh
 import modules.paths as ph
 import os
+import re
+import numexpr
 from .frame_interpolation import set_interp_out_fps, gradio_f_interp_get_fps_and_fcount, process_interp_vid_upload_logic, process_interp_pics_upload_logic
 from .upscaling import process_ncnn_upscale_vid_upload_logic
 from .vid2depth import process_depth_vid_upload_logic
@@ -568,54 +570,20 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             # what to do with blank frames (they may result from glitches or the NSFW filter being turned on): reroll with +1 seed, interrupt the animation generation, or do nothing
                             reroll_blank_frames = gr.Radio(['reroll', 'interrupt', 'ignore'], label="Reroll blank frames", value=d.reroll_blank_frames, elem_id="reroll_blank_frames")
                             reroll_patience = gr.Number(value=d.reroll_patience, label="Reroll patience", interactive=True)
-                    
 
-                    def get_parsed_value(value, frame_idx, max_f):
-                        import re
-                        import numexpr
-                        pattern = r'\b(t|max_f)\b'
-                        regex = re.compile(pattern)
-                        parsed_value = value
-                        for match in regex.finditer(parsed_value):
-                            matched_string = match.group(0)
-                            parsed_string = matched_string.replace('t', str(frame_idx)).replace('max_f', str(max_f))
-                            value = numexpr.evaluate(parsed_string)
-                            parsed_value = parsed_value.replace(matched_string, str(value))
+                    
+                    def check_key_sch(value):
+                        replacements = {'t': '1', 'max_f': '999999999'} # static as we don't care for specific in here really
+                        pattern = re.compile(r'\b(t|max_f)\b')
+                        parsed_value = pattern.sub(lambda x: replacements[x.group()], value)
                         right_sides = [part.split(":")[1].strip() for part in parsed_value.split(",")]
-                        for value in right_sides:
+                        for val in right_sides:
                             try:
-                                numexpr.evaluate(value)
+                                numexpr.evaluate(val)
                             except Exception as e:
                                 print(f"Numexpr error: {e}")
-                            
-                        # return parsed_value
-
-                    def validate_input(input_string):
-                        import re
-                        pattern = r'\d+:\((?![^()]*,)\d+\.\d+\)'
-                        if re.match(pattern, input_string):
-                            return True
-                        else:
-                            return False
                     def andy_test_func(key_sch):
-                        # import numexpr
-                        
-                        get_parsed_value(key_sch, 1, 999999999)
-                        # right_sides = [part.split(":")[1].strip() for part in rez.split(",")]
-                        # print(right_sides)
-                        # for i in right_sides:
-                            # try:
-                                # numexpr.evaluate(i)
-                            # except Exception as e:
-                                # print(f"Numexpr error: {e}")
-                                # print(e)
-                        # import numexpr 
-                        # numexpr.evaluate(right_sides)
-                        valid_res = validate_input(key_sch)
-                        if valid_res:
-                            print("VALID!")
-                        else:
-                            print("INVALID!")
+                        check_key_sch(key_sch)
                     with gr.TabItem('Anti Blur', elem_id='anti_blur_accord') as anti_blur_tab:
                         with gr.Row(variant='compact'):
                             amount_schedule = gr.Textbox(label="Amount schedule", lines=1, value = da.amount_schedule, interactive=True)
