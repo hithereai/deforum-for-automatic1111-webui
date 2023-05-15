@@ -360,7 +360,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                     seed = gr.Number(label="Seed", value=d.seed, interactive=True, precision=0, info="Starting seed for the animation. -1 for random")
                     n_batch = gr.Slider(label="# of vids", minimum=1, maximum=100, step=1, value=d.n_batch, interactive=True, info="if seed is set to random (-1), generate a few vids in one run", visible=False)
                     batch_name = gr.Textbox(label="Batch name", lines=1, interactive=True, value = d.batch_name, info="output images will be placed in a folder with this name ({timestring} token will be replaced) inside the img2img output folder. Supports params placeholders. e.g {seed}, {w}, {h}, {prompts}")
-                    testme = gr.UploadButton(label='Upload init image')
+                    # testme = gr.UploadButton(label='Upload init image')
                 with gr.Row(variant='compact'):
                     restore_faces = gr.Checkbox(label='Restore Faces', value=d.restore_faces)
                     tiling = gr.Checkbox(label='Tiling', value=d.tiling)
@@ -576,6 +576,10 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         else:
                             return False
                     def andy_test_func(key_sch):
+                        from .render_modes import get_parsed_value
+                        # right_sides = [part.split(":")[1] for part in string.split(",")]
+                        print(get_parsed_value(key_sch, 1, 999999999))
+                        
                         valid_res = validate_input(key_sch)
                         if valid_res:
                             print("VALID!")
@@ -590,7 +594,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             sigma_schedule = gr.Textbox(label="Sigma schedule", lines=1, value = da.sigma_schedule, interactive=True)
                         with gr.Row(variant='compact'):
                             threshold_schedule = gr.Textbox(label="Threshold schedule", lines=1, value = da.threshold_schedule, interactive=True)
-                    amount_schedule.change(fn=andy_test_func,inputs=amount_schedule,outputs=[])
+                    amount_schedule.blur(fn=andy_test_func,inputs=amount_schedule,outputs=[])
                     with gr.TabItem('Depth Warping & FOV', elem_id='depth_warp_fov_tab') as depth_warp_fov_tab:
                         # this html only shows when not in 2d/3d mode
                         depth_warp_msg_html = gr.HTML(value='Please switch to 3D animation mode to view this section.', elem_id='depth_warp_msg_html')
