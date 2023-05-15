@@ -577,11 +577,14 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         pattern = re.compile(r'\b(t|max_f)\b')
                         parsed_value = pattern.sub(lambda x: replacements[x.group()], value)
                         right_sides = [part.split(":")[1].strip() for part in parsed_value.split(",")]
+                        issues = 0
                         for val in right_sides:
                             try:
                                 numexpr.evaluate(val)
                             except Exception as e:
+                                issues +=1
                                 print(f"Numexpr error: {e}")
+                        print(issues)
                     def andy_test_func(key_sch):
                         check_key_sch(key_sch)
                     with gr.TabItem('Anti Blur', elem_id='anti_blur_accord') as anti_blur_tab:
