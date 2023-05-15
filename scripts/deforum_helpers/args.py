@@ -359,6 +359,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                     seed = gr.Number(label="Seed", value=d.seed, interactive=True, precision=0, info="Starting seed for the animation. -1 for random")
                     n_batch = gr.Slider(label="# of vids", minimum=1, maximum=100, step=1, value=d.n_batch, interactive=True, info="if seed is set to random (-1), generate a few vids in one run", visible=False)
                     batch_name = gr.Textbox(label="Batch name", lines=1, interactive=True, value = d.batch_name, info="output images will be placed in a folder with this name ({timestring} token will be replaced) inside the img2img output folder. Supports params placeholders. e.g {seed}, {w}, {h}, {prompts}")
+                    testme = gr.UploadButton(label='Upload init image')
                 with gr.Row(variant='compact'):
                     restore_faces = gr.Checkbox(label='Restore Faces', value=d.restore_faces)
                     tiling = gr.Checkbox(label='Tiling', value=d.tiling)
@@ -564,7 +565,19 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             # what to do with blank frames (they may result from glitches or the NSFW filter being turned on): reroll with +1 seed, interrupt the animation generation, or do nothing
                             reroll_blank_frames = gr.Radio(['reroll', 'interrupt', 'ignore'], label="Reroll blank frames", value=d.reroll_blank_frames, elem_id="reroll_blank_frames")
                             reroll_patience = gr.Number(value=d.reroll_patience, label="Reroll patience", interactive=True)
-                    # ANTI BLUR INNER TAB  
+                    def validate_input(input_string):
+                        import re
+                        pattern = r'\d+:\((?![^()]*,)\d+\.\d+\)'
+                        if re.match(pattern, input_string):
+                            return True
+                        else:
+                            return False
+                    def andy_test_func(key_sch):
+                        valid_res = validate_input(key_sch)
+                        if valid_res:
+                            print("VALID!")
+                        else:
+                            print("INVALID!")
                     with gr.TabItem('Anti Blur', elem_id='anti_blur_accord') as anti_blur_tab:
                         with gr.Row(variant='compact'):
                             amount_schedule = gr.Textbox(label="Amount schedule", lines=1, value = da.amount_schedule, interactive=True)
@@ -574,6 +587,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             sigma_schedule = gr.Textbox(label="Sigma schedule", lines=1, value = da.sigma_schedule, interactive=True)
                         with gr.Row(variant='compact'):
                             threshold_schedule = gr.Textbox(label="Threshold schedule", lines=1, value = da.threshold_schedule, interactive=True)
+                    amount_schedule.change(fn=andy_test_func,inputs=amount_schedule,outputs=[])
                     with gr.TabItem('Depth Warping & FOV', elem_id='depth_warp_fov_tab') as depth_warp_fov_tab:
                         # this html only shows when not in 2d/3d mode
                         depth_warp_msg_html = gr.HTML(value='Please switch to 3D animation mode to view this section.', elem_id='depth_warp_msg_html')
@@ -581,7 +595,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             use_depth_warping = gr.Checkbox(label="Use depth warping", value=da.use_depth_warping, interactive=True)
                             # this following html only shows when using LeReS depth
                             leres_license_msg = gr.HTML(value='Note that LeReS has a Non-Commercial <a href="https://github.com/aim-uofa/AdelaiDepth/blob/main/LeReS/LICENSE" target="_blank">license</a>. Use it only for fun/personal use.', visible=False, elem_id='leres_license_msg')
-                            depth_algorithm = gr.Dropdown(label="Depth Algorithm", choices=['Midas+AdaBins (old)','Zoe+AdaBins (old)','Midas-3-Hybrid','AdaBins','Zoe', 'Leres'], value=da.depth_algorithm, type="value", elem_id="df_depth_algorithm", interactive=True) # 'Midas-3.1-BeitLarge' is temporarily removed until fixed 04-05-23
+                            depth_algorithm = gr.Dropdown(label="Depth Algorithm", choices=['Midas+AdaBins (old)','Zoe+AdaBins (old)','Midas-3-Hybrid', 'Midas-3.1-BeitLarge', 'AdaBins','Zoe', 'Leres'], value=da.depth_algorithm, type="value", elem_id="df_depth_algorithm", interactive=True) # 'Midas-3.1-BeitLarge' is temporarily removed until fixed 04-05-23
                             midas_weight = gr.Number(label="MiDaS/Zoe weight", value=da.midas_weight, interactive=True, visible=False, info="sets a midpoint at which a depthmap is to be drawn: range [-1 to +1]")
                         with gr.Row(variant='compact', visible=False) as depth_warp_row_2:
                             padding_mode = gr.Radio(['border', 'reflection', 'zeros'], label="Padding mode", value=da.padding_mode, elem_id="padding_mode", info="controls the handling of pixels outside the field of view as they come into the scene. hover on the options for more info")
