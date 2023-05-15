@@ -581,20 +581,15 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             parsed_string = matched_string.replace('t', str(frame_idx)).replace('max_f', str(max_f))
                             value = numexpr.evaluate(parsed_string)
                             parsed_value = parsed_value.replace(matched_string, str(value))
-                        return parsed_value
-
-                    # def get_parsed_value(value, frame_idx, max_f):
-                        # import re
-                        # import numexpr
-                        # pattern = r'`.*?`'
-                        # regex = re.compile(pattern)
-                        # parsed_value = value
-                        # for match in regex.finditer(parsed_value):
-                            # matched_string = match.group(0)
-                            # parsed_string = matched_string.replace('t', f'{frame_idx}').replace("max_f" , f"{max_f}").replace('`','')
-                            # value = numexpr.evaluate(parsed_string)
-                            # parsed_value = parsed_value.replace(matched_string, str(value))
+                        right_sides = [part.split(":")[1].strip() for part in parsed_value.split(",")]
+                        for value in right_sides:
+                            try:
+                                numexpr.evaluate(value)
+                            except Exception as e:
+                                print(f"Numexpr error: {e}")
+                            
                         # return parsed_value
+
                     def validate_input(input_string):
                         import re
                         pattern = r'\d+:\((?![^()]*,)\d+\.\d+\)'
@@ -603,16 +598,16 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                         else:
                             return False
                     def andy_test_func(key_sch):
-                        import numexpr
+                        # import numexpr
                         
-                        rez = get_parsed_value(key_sch, 1, 999999999)
-                        right_sides = [part.split(":")[1].strip() for part in rez.split(",")]
-                        print(right_sides)
-                        for i in right_sides:
-                            try:
-                                numexpr.evaluate(i)
-                            except Exception as e:
-                                print(f"Numexpr error: {e}")
+                        get_parsed_value(key_sch, 1, 999999999)
+                        # right_sides = [part.split(":")[1].strip() for part in rez.split(",")]
+                        # print(right_sides)
+                        # for i in right_sides:
+                            # try:
+                                # numexpr.evaluate(i)
+                            # except Exception as e:
+                                # print(f"Numexpr error: {e}")
                                 # print(e)
                         # import numexpr 
                         # numexpr.evaluate(right_sides)
