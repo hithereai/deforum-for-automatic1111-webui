@@ -11,6 +11,7 @@ from .video_audio_utilities import find_ffmpeg_binary, ffmpeg_stitch_video, dire
 from .gradio_funcs import *
 from .general_utils import get_os, get_deforum_version, custom_placeholder_format, test_long_path_support, get_max_path_length, substitute_placeholders
 from .deforum_controlnet import setup_controlnet_ui, controlnet_component_names, controlnet_infotext
+from .defaults import DeforumAnimPrompts, keyframeExamples
 import tempfile
        
 def Root():
@@ -157,15 +158,6 @@ def DeforumAnimArgs():
 
     return locals()
     
-def DeforumAnimPrompts():
-    return r"""{
-    "0": "tiny cute swamp bunny, highly detailed, intricate, ultra hd, sharp photo, crepuscular rays, in focus, by tomasz alen kopera",
-    "30": "anthropomorphic clean cat, surrounded by fractals, epic angle and pose, symmetrical, 3d, depth of field, ruan jia and fenghua zhong",
-    "60": "a beautiful coconut --neg photo, realistic",
-    "90": "a beautiful durian, trending on Artstation"
-}
-    """
-
 def DeforumArgs():
     #**Image Settings**
     W = 512 #
@@ -243,15 +235,6 @@ def DeforumArgs():
     seed_internal = 0
 
     return locals()
-
-def keyframeExamples():
-    return '''{
-    "0": "https://deforum.github.io/a1/Gi1.png",
-    "max_f/4-5": "https://deforum.github.io/a1/Gi2.png",
-    "max_f/2-10": "https://deforum.github.io/a1/Gi3.png",
-    "3*max_f/4-15": "https://deforum.github.io/a1/Gi4.jpg",
-    "max_f-20": "https://deforum.github.io/a1/Gi1.png"
-}'''
 
 def LoopArgs():
     use_looper = False
@@ -1093,8 +1076,6 @@ def pack_args(args_dict):
     args_dict['scale'] = 7
     args_dict['subseed'] = -1
     args_dict['subseed_strength'] = 0
-    args_dict['C'] = 4
-    args_dict['f'] = 8
     args_dict['timestring'] = ""
     args_dict['init_sample'] = None
     args_dict['noise_mask'] = None
