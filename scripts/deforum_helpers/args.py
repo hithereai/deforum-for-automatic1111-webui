@@ -600,7 +600,7 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
                             sigma_schedule = gr.Textbox(label="Sigma schedule", lines=1, value = da.sigma_schedule, interactive=True)
                         with gr.Row(variant='compact'):
                             threshold_schedule = gr.Textbox(label="Threshold schedule", lines=1, value = da.threshold_schedule, interactive=True)
-                    amount_schedule.blur(fn=andy_test_func,inputs=amount_schedule,outputs=amount_schedule)
+                    amount_schedule.blur(fn=andy_test_func,inputs=amount_schedule,outputs=[])
                     with gr.TabItem('Depth Warping & FOV', elem_id='depth_warp_fov_tab') as depth_warp_fov_tab:
                         # this html only shows when not in 2d/3d mode
                         depth_warp_msg_html = gr.HTML(value='Please switch to 3D animation mode to view this section.', elem_id='depth_warp_msg_html')
