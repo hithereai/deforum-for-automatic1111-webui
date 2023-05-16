@@ -1,4 +1,4 @@
-from modules.shared import cmd_opts, opts
+from modules.shared import cmd_opts
 from modules.processing import get_fixed_seed
 import modules.shared as sh
 import modules.paths as ph
@@ -223,7 +223,6 @@ def DeforumArgs():
     reroll_patience = 10
 
     n_samples = 1 # doesnt do anything
-    precision = 'autocast' 
 
     prompt = ""
     timestring = ""
@@ -308,7 +307,7 @@ anim_args_names =   str(r'''animation_mode, max_frames, border,
                         use_mask_video, video_mask_path,
                         resume_from_timestring, resume_timestring'''
                     ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
-hybrid_args_names =   str(r'''hybrid_generate_inputframes, hybrid_generate_human_masks, hybrid_use_first_frame_as_init_image,
+hybrid_args_names = str(r'''hybrid_generate_inputframes, hybrid_generate_human_masks, hybrid_use_first_frame_as_init_image,
                         hybrid_motion, hybrid_motion_use_prev_img, hybrid_flow_consistency, hybrid_consistency_blur, hybrid_flow_method, hybrid_composite,
                         hybrid_use_init_image, hybrid_comp_mask_type, hybrid_comp_mask_inverse,
                         hybrid_comp_mask_equalize, hybrid_comp_mask_auto_contrast, hybrid_comp_save_extra_frames,
@@ -316,7 +315,7 @@ hybrid_args_names =   str(r'''hybrid_generate_inputframes, hybrid_generate_human
                         hybrid_comp_mask_blend_alpha_schedule, hybrid_comp_mask_contrast_schedule,
                         hybrid_comp_mask_auto_contrast_cutoff_high_schedule, hybrid_comp_mask_auto_contrast_cutoff_low_schedule'''
                     ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
-args_names =    str(r'''W, H, tiling, restore_faces, seed, sampler, seed_enable_extras,
+args_names =        str(r'''W, H, tiling, restore_faces, seed, sampler, seed_enable_extras,
                         seed_resize_from_w, seed_resize_from_h, steps, n_batch, save_settings,
                         save_sample_per_step, batch_name, seed_behavior, seed_iter_N, use_init, strength_0_no_init, strength, init_image,
                         use_mask, use_alpha_as_mask, invert_mask, overlay_mask,
@@ -329,7 +328,7 @@ video_args_names =  str(r'''skip_video_creation,
                     ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
 parseq_args_names = str(r'''parseq_manifest, parseq_use_deltas'''
                     ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
-loop_args_names = str(r'''use_looper, init_images, image_strength_schedule, blendFactorMax, blendFactorSlope, 
+loop_args_names =   str(r'''use_looper, init_images, image_strength_schedule, blendFactorMax, blendFactorSlope, 
                           tweening_frames_schedule, color_correction_factor'''
                     ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
 
@@ -346,8 +345,6 @@ def setup_deforum_setting_ui(is_img2img):
     
 def pack_args(args_dict):
     args_dict = {name: args_dict[name] for name in args_names}
-    args_dict['precision'] = 'autocast' 
-    args_dict['scale'] = 7
     args_dict['subseed'] = -1
     args_dict['subseed_strength'] = 0
     args_dict['timestring'] = ""
