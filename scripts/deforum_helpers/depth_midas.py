@@ -4,13 +4,12 @@ import torch
 import gc
 import numpy as np
 from .general_utils import download_file_with_checksum
-# from midas.dpt_depth import DPTDepthModel
-# from midas.transforms import Resize, NormalizeImage, PrepareForNet
+from midas.dpt_depth import DPTDepthModel
+from midas.transforms import Resize, NormalizeImage, PrepareForNet
 import torchvision.transforms as T
 
 class MidasDepth:
     def __init__(self, models_path, device, half_precision=True, midas_model_type='Midas-3-Hybrid'):
-        from midas.transforms import Resize, NormalizeImage, PrepareForNet
         if midas_model_type.lower() == 'midas-3.1-beitlarge':
             self.midas_model_filename = 'dpt_beit_large_512.pt'
             self.midas_model_checksum='66cbb00ea7bccd6e43d3fd277bd21002d8d8c2c5c487e5fcd1e1d70c691688a19122418b3ddfa94e62ab9f086957aa67bbec39afe2b41c742aaaf0699ee50b33'
@@ -39,7 +38,6 @@ class MidasDepth:
             self.midas_model = self.midas_model.half()
             
     def load_midas_model(self, models_path, midas_model_filename):
-        from midas.dpt_depth import DPTDepthModel
         model_file = os.path.join(models_path, midas_model_filename)
         print(f"Loading MiDaS model from {midas_model_filename}...")
         self.midas_model = DPTDepthModel(

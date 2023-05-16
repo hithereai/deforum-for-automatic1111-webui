@@ -1,10 +1,10 @@
 import torch
 from PIL import Image
+from zoedepth.models.builder import build_model
+from zoedepth.utils.config import get_config
 
 class ZoeDepth:
     def __init__(self, width=512, height=512):
-        from zoedepth.models.builder import build_model
-        from zoedepth.utils.config import get_config
         conf = get_config("zoedepth_nk", "infer")
         conf.img_size = [width, height]
         self.model_zoe = build_model(conf)
