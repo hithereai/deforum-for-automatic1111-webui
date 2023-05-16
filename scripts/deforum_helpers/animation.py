@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from functools import reduce
 import math
-import py3d_tools as p3d
+# import py3d_tools as p3d
 import torch
 from einops import rearrange
 from .prompt import check_is_number
@@ -199,6 +199,7 @@ def anim_frame_warp_2d(prev_img_cv2, args, anim_args, keys, frame_idx):
     )
 
 def anim_frame_warp_3d(device, prev_img_cv2, depth, anim_args, keys, frame_idx):
+    import py3d_tools as p3d
     TRANSLATION_SCALE = 1.0/200.0 # matches Disco
     translate_xyz = [
         -keys.translation_x_series[frame_idx] * TRANSLATION_SCALE, 
@@ -224,6 +225,7 @@ def transform_image_3d_switcher(device, prev_img_cv2, depth_tensor, rot_mat, tra
         return transform_image_3d_new(device, prev_img_cv2, depth_tensor, rot_mat, translate, anim_args, keys, frame_idx)
 
 def transform_image_3d_legacy(device, prev_img_cv2, depth_tensor, rot_mat, translate, anim_args, keys, frame_idx):
+    import py3d_tools as p3d
     # adapted and optimized version of transform_image_3d from Disco Diffusion https://github.com/alembics/disco-diffusion 
     w, h = prev_img_cv2.shape[1], prev_img_cv2.shape[0]
 
@@ -273,6 +275,7 @@ def transform_image_3d_legacy(device, prev_img_cv2, depth_tensor, rot_mat, trans
     return result
 
 def transform_image_3d_new(device, prev_img_cv2, depth_tensor, rot_mat, translate, anim_args, keys, frame_idx):
+    import py3d_tools as p3d
     '''
     originally an adapted and optimized version of transform_image_3d from Disco Diffusion https://github.com/alembics/disco-diffusion
     modified by reallybigname to control various incoming tensors
