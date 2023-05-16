@@ -176,3 +176,5 @@ def get_gradio_html(section_name):
     else:
         return None
         
+mask_fill_choices=['fill', 'original', 'latent noise', 'latent nothing']
+        

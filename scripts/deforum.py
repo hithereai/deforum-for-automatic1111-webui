@@ -226,12 +226,13 @@ def run_deforum(*args, **kwargs):
     return processed.images, args.timestring, generation_info_js, plaintext_to_html(processed.info), plaintext_to_html('')
 
 def on_ui_tabs():
+    from deforum_helpers.ui import setup_deforum_setting_dictionary
     with gr.Blocks(analytics_enabled=False) as deforum_interface:
         components = {}
         dummy_component = gr.Label(visible=False)
         with gr.Row(elem_id='deforum_progress_row').style(equal_height=False, variant='compact'):
             with gr.Column(scale=1, variant='panel'):
-                components = deforum_args.setup_deforum_setting_dictionary(None, True)
+                components = setup_deforum_setting_dictionary(True, deforum_args.d, deforum_args.da,deforum_args.dp,deforum_args.dv,deforum_args.dr,deforum_args.dloopArgs)
         
             with gr.Column(scale=1, variant='compact'):
                 with gr.Row(variant='compact'):
