@@ -11,7 +11,7 @@ from .video_audio_utilities import find_ffmpeg_binary, ffmpeg_stitch_video, dire
 from .gradio_funcs import *
 from .general_utils import get_os, get_deforum_version, custom_placeholder_format, test_long_path_support, get_max_path_length, substitute_placeholders
 from .deforum_controlnet import setup_controlnet_ui, controlnet_component_names, controlnet_infotext
-# from .defaults import DeforumAnimPrompts, keyframeExamples, serve_hybrid_html
+# from .defaults import DeforumAnimPrompts, get_guided_imgs_default_json, serve_hybrid_html
 from .defaults import *
 import tempfile
        
@@ -239,7 +239,7 @@ def DeforumArgs():
 
 def LoopArgs():
     use_looper = False
-    init_images = keyframeExamples()
+    init_images = get_guided_imgs_default_json()
     image_strength_schedule = "0:(0.75)"
     blendFactorMax = "0:(0.35)"
     blendFactorSlope = "0:(0.25)"
@@ -352,7 +352,7 @@ def setup_deforum_setting_dictionary(self, is_img2img):
                     with gr.Row(variant='compact'):
                         use_looper = gr.Checkbox(label="Enable guided images mode", value=dloopArgs.use_looper, interactive=True)
                     with gr.Row(variant='compact'):
-                        init_images = gr.Textbox(label="Images to use for keyframe guidance", lines=9, value = keyframeExamples(), interactive=True)
+                        init_images = gr.Textbox(label="Images to use for keyframe guidance", lines=9, value = get_guided_imgs_default_json(), interactive=True)
                     # GUIDED IMAGES SCHEDULES ACCORD
                     with gr.Accordion('Guided images schedules', open=False):
                         with gr.Row(variant='compact'):

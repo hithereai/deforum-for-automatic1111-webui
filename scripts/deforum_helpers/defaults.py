@@ -10,9 +10,8 @@ def DeforumAnimPrompts():
 }
     """
     
-
 # Guided images defaults    
-def keyframeExamples():
+def get_guided_imgs_default_json():
     return '''{
     "0": "https://deforum.github.io/a1/Gi1.png",
     "max_f/4-5": "https://deforum.github.io/a1/Gi2.png",
@@ -46,7 +45,7 @@ def get_hybrid_info_html():
         </ul>
         <a style='color:SteelBlue;' target='_blank' href='https://github.com/deforum-art/deforum-for-automatic1111-webui/wiki/Animation-Settings#hybrid-video-mode-for-2d3d-animations'>Click Here</a> for more info/ a Guide.
         """
-    
+
 def get_composable_masks_info_html():
     return """
         <ul style="list-style-type:circle; margin-left:0.75em; margin-bottom:0.2em">
@@ -57,6 +56,7 @@ def get_composable_masks_info_html():
         <li>description-based: <i>word masks</i> in &lt;&gt;, like &lt;apple&gt;, &lt;hair&gt</li>
         </ul>
         """
+        
 def get_parseq_info_html():
     return """
         <p>Use a <a style='color:SteelBlue;' target='_blank' href='https://sd-parseq.web.app/deforum'>Parseq</a> manifest for your animation (leave blank to ignore).</p>
@@ -64,6 +64,7 @@ def get_parseq_info_html():
             Fields managed in your Parseq manifest override the values and schedules set in other parts of this UI. You can select which values to override by using the "Managed Fields" section in Parseq.
         </p>
         """
+        
 def get_prompts_info_html():
     return """
         <ul style="list-style-type:circle; margin-left:0.75em; margin-bottom:0.2em">
@@ -74,7 +75,7 @@ def get_prompts_info_html():
         <li>Prompts are stored in JSON format. If you've got an error, check it in a <a style="color:SteelBlue" href="https://odu.github.io/slingjsonlint/">JSON Validator</a></li>
         </ul>
         """
-
+        
 def get_guided_imgs_info_html():
     return """        
         <p>You can use this as a guided image tool or as a looper depending on your settings in the keyframe images field. 
@@ -108,6 +109,7 @@ def get_guided_imgs_info_html():
             Example: strength_schedule could use 0:(0.25 * cos((72 / 60 * 3.141 * (t + 0) / 30))**13 + 0.7) to make alternating changes each 30 frames</li>
         </ul>
         """
+        
 def get_main_info_html():
     return """
         <p><strong>Made by <a href="https://deforum.github.io">deforum.github.io</a>, port for AUTOMATIC1111's webui maintained by <a href="https://github.com/kabachuha">kabachuha</a></strong> & <a href="https://github.com/hithereai">hithereai</a></strong></p>
@@ -125,7 +127,6 @@ def get_main_info_html():
         </ul>
         <italic>If you liked this extension, please <a style="color:SteelBlue" href="https://github.com/deforum-art/deforum-for-automatic1111-webui">give it a star on GitHub</a>!</italic> 😊
         """
-
 def get_frame_interpolation_info_html():
     return """
         Use <a href="https://github.com/megvii-research/ECCV2022-RIFE">RIFE</a> / <a href="https://film-net.github.io/">FILM</a> Frame Interpolation to smooth out, slow-mo (or both) any video.</p>
