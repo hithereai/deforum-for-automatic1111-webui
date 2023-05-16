@@ -6,11 +6,11 @@ import os
 import time
 import json
 from types import SimpleNamespace
-from .gradio_funcs import *
 from .general_utils import get_os, get_deforum_version, substitute_placeholders
 from .deforum_controlnet import controlnet_component_names
 from .defaults import get_guided_imgs_default_json, mask_fill_choices
 import tempfile
+# from .gradio_funcs import *
        
 def RootArgs():
     device = sh.device
