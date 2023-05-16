@@ -3,14 +3,16 @@ from modules.processing import get_fixed_seed
 import modules.shared as sh
 import modules.paths as ph
 import os
+import time
+import json
+from types import SimpleNamespace
 from .gradio_funcs import *
 from .general_utils import get_os, get_deforum_version, substitute_placeholders
 from .deforum_controlnet import controlnet_component_names
-# from .defaults import DeforumAnimPrompts, get_guided_imgs_default_json, serve_hybrid_html
-from .defaults import *
+from .defaults import get_guided_imgs_default_json, mask_fill_choices
 import tempfile
        
-def Root():
+def RootArgs():
     device = sh.device
     models_path = ph.models_path + '/Deforum'
     half_precision = not cmd_opts.no_half
@@ -270,9 +272,6 @@ def DeforumOutputArgs():
     frame_interpolation_slow_mo_amount = 2 #[2 to 10]
     frame_interpolation_keep_imgs = False
     return locals()
-    
-import time
-from types import SimpleNamespace
 
 i1_store_backup = f"<p style=\"text-align:center;font-weight:bold;margin-bottom:0em\">Deforum extension for auto1111 — version 2.4b | Git commit: {get_deforum_version()}</p>"
 i1_store = i1_store_backup
@@ -281,7 +280,7 @@ d = SimpleNamespace(**DeforumArgs()) #default args
 da = SimpleNamespace(**DeforumAnimArgs()) #default anim args
 dp = SimpleNamespace(**ParseqArgs()) #default parseq ars
 dv = SimpleNamespace(**DeforumOutputArgs()) #default video args
-dr = SimpleNamespace(**Root()) # ROOT args
+dr = SimpleNamespace(**RootArgs()) # ROOT args
 dloopArgs = SimpleNamespace(**LoopArgs())
 
 anim_args_names =   str(r'''animation_mode, max_frames, border,
@@ -344,10 +343,7 @@ def setup_deforum_setting_ui(is_img2img):
     from .ui import setup_deforum_setting_dictionary
     ds = setup_deforum_setting_dictionary(is_img2img,d,da,dp,dv,dr,dloopArgs)
     return [ds[name] for name in (['btn'] + get_component_names())]
-
-def pack_anim_args(args_dict):
-    return {name: args_dict[name] for name in (anim_args_names + hybrid_args_names)}
-
+    
 def pack_args(args_dict):
     args_dict = {name: args_dict[name] for name in args_names}
     args_dict['precision'] = 'autocast' 
@@ -360,6 +356,9 @@ def pack_args(args_dict):
     args_dict['seed_internal'] = 0
     return args_dict
     
+def pack_anim_args(args_dict):
+    return {name: args_dict[name] for name in (anim_args_names + hybrid_args_names)}
+   
 def pack_video_args(args_dict):
     return {name: args_dict[name] for name in video_args_names}
 
@@ -382,10 +381,8 @@ def process_args(args_dict_main, run_id):
     parseq_args_dict = pack_parseq_args(args_dict_main)
     loop_args_dict = pack_loop_args(args_dict_main)
     controlnet_args_dict = pack_controlnet_args(args_dict_main)
-
-    import json
     
-    root = SimpleNamespace(**Root())
+    root = SimpleNamespace(**RootArgs())
     root.p = args_dict_main['p']
     p = root.p
     root.animation_prompts = json.loads(args_dict_main['animation_prompts'])
