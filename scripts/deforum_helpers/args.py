@@ -397,8 +397,7 @@ def process_args(args_dict_main, run_id):
     root.positive_prompts = positive_prompts
     root.negative_prompts = negative_prompts
     
-    if not os.path.exists(root.models_path):
-        os.mkdir(root.models_path)
+    os.makedirs(root.models_path, exist_ok=True)
 
     args = SimpleNamespace(**args_dict)
     anim_args = SimpleNamespace(**anim_args_dict)
