@@ -285,16 +285,6 @@ dv = SimpleNamespace(**DeforumOutputArgs()) #default video args
 dr = SimpleNamespace(**Root()) # ROOT args
 dloopArgs = SimpleNamespace(**LoopArgs())
 
-### SETTINGS STORAGE UPDATE! 2023-01-27
-### To Reduce The Number Of Settings Overrides,
-### They Are Being Passed As Dictionaries
-### It Would Have Been Also Nice To Retrieve Them
-### From Functions Like Deforumoutputargs(),
-### But Over Time There Was Some Cross-Polination,
-### So They Are Now Hardcoded As 'List'-Strings Below
-### If you're adding a new setting, add it to one of the lists
-### besides writing it in the setup functions above
-
 anim_args_names =   str(r'''animation_mode, max_frames, border,
                         angle, zoom, translation_x, translation_y, translation_z, transform_center_x, transform_center_y,
                         rotation_3d_x, rotation_3d_y, rotation_3d_z,
