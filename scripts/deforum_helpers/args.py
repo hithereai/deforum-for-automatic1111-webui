@@ -445,7 +445,6 @@ def process_args(args_dict_main, run_id):
     args.outdir = os.path.join(p.outpath_samples, str(args.batch_name))
     root.outpath_samples = args.outdir
     args.outdir = os.path.join(os.getcwd(), args.outdir)
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
+    os.makedirs(args.outdir, exist_ok=True)
     
     return args_loaded_ok, root, args, anim_args, video_args, parseq_args, loop_args, controlnet_args
