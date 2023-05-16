@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from PIL import Image
 from .general_utils import download_file_with_checksum
+from infer import InferenceHelper
 
 class AdaBinsModel:
     _instance = None
@@ -15,7 +16,6 @@ class AdaBinsModel:
         return cls._instance
 
     def _initialize(self, models_path, keep_in_vram=False):
-        from infer import InferenceHelper
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.keep_in_vram = keep_in_vram
         self.adabins_helper = None
