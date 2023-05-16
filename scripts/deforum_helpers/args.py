@@ -11,7 +11,8 @@ from .video_audio_utilities import find_ffmpeg_binary, ffmpeg_stitch_video, dire
 from .gradio_funcs import *
 from .general_utils import get_os, get_deforum_version, custom_placeholder_format, test_long_path_support, get_max_path_length, substitute_placeholders
 from .deforum_controlnet import setup_controlnet_ui, controlnet_component_names, controlnet_infotext
-from .defaults import DeforumAnimPrompts, keyframeExamples
+# from .defaults import DeforumAnimPrompts, keyframeExamples, serve_hybrid_html
+from .defaults import *
 import tempfile
        
 def Root():
@@ -671,21 +672,8 @@ def setup_deforum_setting_dictionary(self, is_img2img):
                 # this html only shows when not in 2d/3d mode
                 hybrid_msg_html = gr.HTML(value='Please, change animation mode to 2D or 3D to enable Hybrid Mode',visible=False, elem_id='hybrid_msg_html')
                 # HYBRID INFO ACCORD
-                with gr.Accordion("Info & Help", open=False):
-                    hybrid_html = "<p style=\"padding-bottom:0\"><b style=\"text-shadow: blue -1px -1px;\">Hybrid Video Compositing in 2D/3D Mode</b><span style=\"color:#DDD;font-size:0.7rem;text-shadow: black -1px -1px;margin-left:10px;\">by <a href=\"https://github.com/reallybigname\">reallybigname</a></span></p>"
-                    hybrid_html += "<ul style=\"list-style-type:circle; margin-left:1em; margin-bottom:1em;\"><li>Composite video with previous frame init image in <b>2D or 3D animation_mode</b> <i>(not for Video Input mode)</i></li>"
-                    hybrid_html += "<li>Uses your <b>Init</b> settings for <b>video_init_path, extract_nth_frame, overwrite_extracted_frames</b></li>"
-                    hybrid_html += "<li>In Keyframes tab, you can also set <b>color_coherence</b> = '<b>Video Input</b>'</li>"
-                    hybrid_html += "<li><b>color_coherence_video_every_N_frames</b> lets you only match every N frames</li>"
-                    hybrid_html += "<li>Color coherence may be used with hybrid composite off, to just use video color.</li>"
-                    hybrid_html += "<li>Hybrid motion may be used with hybrid composite off, to just use video motion.</li></ul>"
-                    hybrid_html += "Hybrid Video Schedules"
-                    hybrid_html += "<ul style=\"list-style-type:circle; margin-left:1em; margin-bottom:1em;\"><li>The alpha schedule controls overall alpha for video mix, whether using a composite mask or not.</li>"
-                    hybrid_html += "<li>The <b>hybrid_comp_mask_blend_alpha_schedule</b> only affects the 'Blend' <b>hybrid_comp_mask_type</b>.</li>"
-                    hybrid_html += "<li>Mask contrast schedule is from 0-255. Normal is 1. Affects all masks.</li>"
-                    hybrid_html += "<li>Autocontrast low/high cutoff schedules 0-100. Low 0 High 100 is full range. <br>(<i><b>hybrid_comp_mask_auto_contrast</b> must be enabled</i>)</li></ul>"            
-                    hybrid_html += "<a style='color:SteelBlue;' target='_blank' href='https://github.com/deforum-art/deforum-for-automatic1111-webui/wiki/Animation-Settings#hybrid-video-mode-for-2d3d-animations'>Click Here</a> for more info/ a Guide."      
-                    gr.HTML(hybrid_html)
+                with gr.Accordion("Info & Help", open=False):    
+                    gr.HTML(value=get_hybrid_info_html())
                 # HYBRID SETTINGS ACCORD
                 with gr.Accordion("Hybrid Settings", open=True) as hybrid_settings_accord:
                     with gr.Row(variant='compact'):
