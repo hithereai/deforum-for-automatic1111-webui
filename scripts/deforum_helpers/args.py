@@ -271,7 +271,6 @@ def DeforumOutputArgs():
     frame_interpolation_keep_imgs = False
     return locals()
     
-import gradio as gr
 import time
 from types import SimpleNamespace
 
