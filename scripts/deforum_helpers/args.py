@@ -688,24 +688,7 @@ def setup_deforum_setting_dictionary(self, is_img2img):
                 # FRAME INTERPOLATION TAB
                 with gr.Tab('Frame Interpolation') as frame_interp_tab:
                     with gr.Accordion('Important notes and Help', open=False, elem_id="f_interp_accord"):
-                        gr.HTML("""
-                        Use <a href="https://github.com/megvii-research/ECCV2022-RIFE">RIFE</a> / <a href="https://film-net.github.io/">FILM</a> Frame Interpolation to smooth out, slow-mo (or both) any video.</p>
-                         <p style="margin-top:1em">
-                            Supported engines:
-                            <ul style="list-style-type:circle; margin-left:1em; margin-bottom:1em">
-                                <li>RIFE v4.6 and FILM.</li>
-                            </ul>
-                        </p>
-                         <p style="margin-top:1em">
-                            Important notes:
-                            <ul style="list-style-type:circle; margin-left:1em; margin-bottom:1em">
-                                <li>Frame Interpolation will *not* run if any of the following are enabled: 'Store frames in ram' / 'Skip video for run all'.</li>
-                                <li>Audio (if provided) will *not* be transferred to the interpolated video if Slow-Mo is enabled.</li>
-                                <li>'add_soundtrack' and 'soundtrack_path' aren't being honoured in "Interpolate an existing video" mode. Original vid audio will be used instead with the same slow-mo rules above.</li>
-                                <li>In "Interpolate existing pics" mode, FPS is determined *only* by output FPS slider. Audio will be added if requested even with slow-mo "enabled", as it does *nothing* in this mode.</li>
-                            </ul>
-                        </p>
-                        """)
+                        gr.HTML(value=get_gradio_html('frame_interpolation'))
                     with gr.Column(variant='compact'):
                         with gr.Row(variant='compact'):
                             # Interpolation Engine
@@ -816,15 +799,7 @@ def setup_deforum_setting_dictionary(self, is_img2img):
                     depth_btn.click(upload_vid_to_depth,inputs=[vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, depth_keep_imgs])
                 # STITCH FRAMES TO VID TAB
                 with gr.TabItem('Frames to Video') as stitch_imgs_to_vid_row:
-                    gr.HTML("""
-                     <p style="margin-top:0em">
-                        Important Notes:
-                        <ul style="list-style-type:circle; margin-left:1em; margin-bottom:0.25em">
-                            <li>Enter relative to webui folder or Full-Absolute path, and make sure it ends with something like this: '20230124234916_%09d.png', just replace 20230124234916 with your batch ID. The %09d is important, don't forget it!</li>
-                            <li>In the filename, '%09d' represents the 9 counting numbers, For '20230124234916_000000001.png', use '20230124234916_%09d.png'</li>
-                            <li>If non-deforum frames, use the correct number of counting digits. For files like 'bunnies-0000.jpg', you'd use 'bunnies-%04d.jpg'</li>
-                        </ul>
-                        """)
+                    gr.HTML(value=get_gradio_html('frames_to_video'))
                     with gr.Row(variant='compact'):
                           image_path = gr.Textbox(label="Image path", lines=1, interactive=True, value = dv.image_path)
                     ffmpeg_stitch_imgs_but = gr.Button(value="*Stitch frames to video*")

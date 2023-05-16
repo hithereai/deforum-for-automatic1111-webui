@@ -125,7 +125,36 @@ def get_main_info_html():
         </ul>
         <italic>If you liked this extension, please <a style="color:SteelBlue" href="https://github.com/deforum-art/deforum-for-automatic1111-webui">give it a star on GitHub</a>!</italic> 😊
         """
-            
+
+def get_frame_interpolation_info_html():
+    return """
+        Use <a href="https://github.com/megvii-research/ECCV2022-RIFE">RIFE</a> / <a href="https://film-net.github.io/">FILM</a> Frame Interpolation to smooth out, slow-mo (or both) any video.</p>
+         <p style="margin-top:1em">
+            Supported engines:
+            <ul style="list-style-type:circle; margin-left:1em; margin-bottom:1em">
+                <li>RIFE v4.6 and FILM.</li>
+            </ul>
+        </p>
+         <p style="margin-top:1em">
+            Important notes:
+            <ul style="list-style-type:circle; margin-left:1em; margin-bottom:1em">
+                <li>Frame Interpolation will *not* run if any of the following are enabled: 'Store frames in ram' / 'Skip video for run all'.</li>
+                <li>Audio (if provided) will *not* be transferred to the interpolated video if Slow-Mo is enabled.</li>
+                <li>'add_soundtrack' and 'soundtrack_path' aren't being honoured in "Interpolate an existing video" mode. Original vid audio will be used instead with the same slow-mo rules above.</li>
+                <li>In "Interpolate existing pics" mode, FPS is determined *only* by output FPS slider. Audio will be added if requested even with slow-mo "enabled", as it does *nothing* in this mode.</li>
+            </ul>
+        </p>
+        """
+def get_frames_to_video_info_html():
+    return """
+        <p style="margin-top:0em">
+        Important Notes:
+        <ul style="list-style-type:circle; margin-left:1em; margin-bottom:0.25em">
+            <li>Enter relative to webui folder or Full-Absolute path, and make sure it ends with something like this: '20230124234916_%09d.png', just replace 20230124234916 with your batch ID. The %09d is important, don't forget it!</li>
+            <li>In the filename, '%09d' represents the 9 counting numbers, For '20230124234916_000000001.png', use '20230124234916_%09d.png'</li>
+            <li>If non-deforum frames, use the correct number of counting digits. For files like 'bunnies-0000.jpg', you'd use 'bunnies-%04d.jpg'</li>
+        </ul>
+        """
 def get_gradio_html(section_name):
     if section_name.lower() == 'hybrid_video':
         return get_hybrid_info_html()
@@ -139,6 +168,10 @@ def get_gradio_html(section_name):
         return get_guided_imgs_info_html()
     elif section_name.lower() == 'main':
         return get_main_info_html()
+    elif section_name.lower() == 'frame_interpolation':
+        return get_frame_interpolation_info_html()
+    elif section_name.lower() == 'frames_to_video':
+        return get_frames_to_video_info_html()
     else:
         return None
         
