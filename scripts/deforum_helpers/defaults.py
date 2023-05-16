@@ -80,9 +80,7 @@ def get_guided_imgs_info_html():
             <p>You can use this as a guided image tool or as a looper depending on your settings in the keyframe images field. 
             Set the keyframes and the images that you want to show up. 
             Note: the number of frames between each keyframe should be greater than the tweening frames.</p>
-            
-            <p>In later versions, this should also be in the strength schedule, but for now, you need to set it.</p>
-            
+
             <p>Prerequisites and Important Info:</p>
             <ul style="list-style-type:circle; margin-left:2em; margin-bottom:0em">
                 <li>This mode works ONLY with 2D/3D animation modes. Interpolation and Video Input modes aren't supported.</li>
