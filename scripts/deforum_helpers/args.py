@@ -301,20 +301,14 @@ i1_store = i1_store_backup
 
 mask_fill_choices=['fill', 'original', 'latent noise', 'latent nothing']
 
-def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
+def setup_deforum_setting_dictionary(self, is_img2img):
     d = SimpleNamespace(**DeforumArgs()) #default args
     da = SimpleNamespace(**DeforumAnimArgs()) #default anim args
     dp = SimpleNamespace(**ParseqArgs()) #default parseq ars
     dv = SimpleNamespace(**DeforumOutputArgs()) #default video args
     dr = SimpleNamespace(**Root()) # ROOT args
     dloopArgs = SimpleNamespace(**LoopArgs())
-    if not is_extension:
-        with gr.Row(variant='compact'):
-            btn = gr.Button("Click here after the generation to show the video")
-        with gr.Row(variant='compact'):
-            i1 = gr.HTML(i1_store, elem_id='deforum_header')
-    else:
-        btn = i1 = gr.HTML("")
+    btn = i1 = gr.HTML("")
     # MAIN (TOP) EXTENSION INFO ACCORD
     with gr.Accordion("Info, Links and Help", open=False, elem_id='main_top_info_accord'):
             gr.HTML("""<strong>Made by <a href="https://deforum.github.io">deforum.github.io</a>, port for AUTOMATIC1111's webui maintained by <a href="https://github.com/kabachuha">kabachuha</a></strong> & <a href="https://github.com/hithereai">hithereai</a></strong> """)
@@ -333,18 +327,6 @@ def setup_deforum_setting_dictionary(self, is_img2img, is_extension = True):
             <italic>If you liked this extension, please <a style="color:SteelBlue" href="https://github.com/deforum-art/deforum-for-automatic1111-webui">give it a star on GitHub</a>!</italic> 😊""")
     with gr.Row(variant='compact'):
         show_info_on_ui = gr.Checkbox(label="Show more info", value=d.show_info_on_ui, interactive=True)
-    if not is_extension:
-        def show_vid():
-            return {
-                i1: gr.update(value=i1_store, visible=True)
-            }
-        
-        btn.click(
-            show_vid,
-            [],
-            [i1]
-            )
-
     with gr.Blocks():
         with gr.Tabs():
             # RUN TAB
@@ -1098,8 +1080,8 @@ def get_component_names():
 def get_settings_component_names():
     return [name for name in get_component_names()] #if name not in video_args_names]
 
-def setup_deforum_setting_ui(self, is_img2img, is_extension = True):
-    ds = setup_deforum_setting_dictionary(self, is_img2img, is_extension)
+def setup_deforum_setting_ui(self, is_img2img):
+    ds = setup_deforum_setting_dictionary(self, is_img2img)
     return [ds[name] for name in (['btn'] + get_component_names())]
 
 def pack_anim_args(args_dict):
