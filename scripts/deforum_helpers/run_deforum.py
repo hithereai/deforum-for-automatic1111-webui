@@ -2,45 +2,23 @@ import sys, os, shutil
 import traceback
 deforum_folder_name = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-3])
 
-print(deforum_folder_name)
-
 basedirs = [os.getcwd()]
-if 'google.colab' in sys.modules:
-    basedirs.append('/content/gdrive/MyDrive/sd/stable-diffusion-webui') #hardcode as TheLastBen's colab seems to be the primal source
 
-for basedir in basedirs:
-    deforum_paths_to_ensure = [
-        os.path.join(deforum_folder_name, 'scripts'),
-        os.path.join(deforum_folder_name, 'scripts', 'deforum_helpers', 'src')
-        ]
-
-    for deforum_scripts_path_fix in deforum_paths_to_ensure:
-        if not deforum_scripts_path_fix in sys.path:
-            sys.path.extend([deforum_scripts_path_fix])
-
-# Main deforum stuff
 import deforum_helpers.args as deforum_args
 import deforum_helpers.settings as deforum_settings
 from deforum_helpers.save_images import dump_frames_cache, reset_frames_cache
 from deforum_helpers.frame_interpolation import process_video_interpolation
-
-import modules.scripts as wscripts
-from modules import script_callbacks
+from deforum_helpers.general_utils import get_deforum_version
+from deforum_helpers.upscaling import make_upscale_v2
 import gradio as gr
-import json, sys, os, shutil
-
+import sys, os, shutil
 from modules.processing import Processed, StableDiffusionProcessingImg2Img, process_images
 from PIL import Image
 from deforum_helpers.video_audio_utilities import ffmpeg_stitch_video, make_gifski_gif, handle_imgs_deletion, find_ffmpeg_binary, get_ffmpeg_params
-from deforum_helpers.general_utils import get_deforum_version
-from deforum_helpers.upscaling import make_upscale_v2
 import gc
 import torch
 import modules.shared as shared
-from modules.shared import opts, cmd_opts, state
-from modules.ui import create_output_panel, plaintext_to_html, wrap_gradio_call
-from types import SimpleNamespace
-from deforum_helpers.subtitle_handler import get_user_values
+from modules.ui import plaintext_to_html
 
 def run_deforum(*args, **kwargs):
     f_location, f_crf, f_preset = get_ffmpeg_params() # get params for ffmpeg exec
@@ -48,8 +26,8 @@ def run_deforum(*args, **kwargs):
     args_dict = {component_names[i]: args[i+2] for i in range(0, len(component_names))}
     p = StableDiffusionProcessingImg2Img(
         sd_model=shared.sd_model,
-        outpath_samples = opts.outdir_samples or opts.outdir_img2img_samples,
-        outpath_grids = opts.outdir_grids or opts.outdir_img2img_grids
+        outpath_samples = shared.opts.outdir_samples or shared.opts.outdir_img2img_samples,
+        outpath_grids = shared.opts.outdir_grids or shared.opts.outdir_img2img_grids
     ) #we'll setup the rest later
 
     times_to_run = 1
@@ -80,11 +58,11 @@ def run_deforum(*args, **kwargs):
 
         root.clipseg_model = None
         
-        root.initial_clipskip = opts.data.get("CLIP_stop_at_last_layers", 1)
-        root.initial_img2img_fix_steps = opts.data.get("img2img_fix_steps", False)
-        root.initial_noise_multiplier = opts.data.get("initial_noise_multiplier", 1.0)
-        root.initial_ddim_eta = opts.data.get("eta_ddim", 0.0)
-        root.initial_ancestral_eta = opts.data.get("eta_ancestral", 1.0)
+        root.initial_clipskip = shared.opts.data.get("CLIP_stop_at_last_layers", 1)
+        root.initial_img2img_fix_steps = shared.opts.data.get("img2img_fix_steps", False)
+        root.initial_noise_multiplier = shared.opts.data.get("initial_noise_multiplier", 1.0)
+        root.initial_ddim_eta = shared.opts.data.get("eta_ddim", 0.0)
+        root.initial_ancestral_eta = shared.opts.data.get("eta_ancestral", 1.0)
 
         root.basedirs = basedirs
         for basedir in basedirs:
@@ -121,12 +99,12 @@ def run_deforum(*args, **kwargs):
             return None, None, None, None, f"Error: '{e}'. Check your schedules/ init values please. Also make sure you don't have a backwards slash in any of your PATHs - use / instead of \\. Full error message is in your terminal/ cli.", plaintext_to_html('') 
         finally:
             shared.total_tqdm = tqdm_backup
-            # reset opts.data vals to what they were before we started the animation. Else they will stick to the last value - it actually updates webui settings (config.json)
-            opts.data["CLIP_stop_at_last_layers"] = root.initial_clipskip
-            opts.data["img2img_fix_steps"] = root.initial_img2img_fix_steps
-            opts.data["initial_noise_multiplier"] = root.initial_noise_multiplier
-            opts.data["eta_ddim"] = root.initial_ddim_eta
-            opts.data["eta_ancestral"] = root.initial_ancestral_eta
+            # reset shared.opts.data vals to what they were before we started the animation. Else they will stick to the last value - it actually updates webui settings (config.json)
+            shared.opts.data["CLIP_stop_at_last_layers"] = root.initial_clipskip
+            shared.opts.data["img2img_fix_steps"] = root.initial_img2img_fix_steps
+            shared.opts.data["initial_noise_multiplier"] = root.initial_noise_multiplier
+            shared.opts.data["eta_ddim"] = root.initial_ddim_eta
+            shared.opts.data["eta_ancestral"] = root.initial_ancestral_eta
             
             
         
@@ -140,7 +118,7 @@ def run_deforum(*args, **kwargs):
             real_audio_track = anim_args.video_init_path if video_args.add_soundtrack == 'Init Video' else video_args.soundtrack_path
         
         # Establish path of subtitles file
-        if opts.data.get("deforum_save_gen_info_as_srt", False) and opts.data.get("deforum_embed_srt", False):
+        if shared.opts.data.get("deforum_save_gen_info_as_srt", False) and shared.opts.data.get("deforum_embed_srt", False):
             srt_path = os.path.join(args.outdir, f"{args.timestring}.srt")
         else:
             srt_path = None
@@ -211,11 +189,11 @@ def run_deforum(*args, **kwargs):
         if getattr(opts, 'samples_log_stdout', False):
             print(generation_info_js)
 
-        if opts.do_not_show_images:
+        if shared.opts.do_not_show_images:
             processed.images = []
             
-        if opts.data.get("deforum_enable_persistent_settings"):
-            persistent_sett_path = opts.data.get("deforum_persistent_settings_path")
+        if shared.opts.data.get("deforum_enable_persistent_settings"):
+            persistent_sett_path = shared.opts.data.get("deforum_persistent_settings_path")
             deforum_settings.save_settings_from_animation_run(args, anim_args, parseq_args, loop_args, controlnet_args, video_args, root, persistent_sett_path)
 
     return processed.images, args.timestring, generation_info_js, plaintext_to_html(processed.info), plaintext_to_html('')
