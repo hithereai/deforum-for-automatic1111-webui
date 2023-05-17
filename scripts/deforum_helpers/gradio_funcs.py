@@ -4,9 +4,10 @@ from .general_utils import get_os
 from .upscaling import process_ncnn_upscale_vid_upload_logic
 from .video_audio_utilities import extract_number, get_quick_vid_info, get_ffmpeg_params
 from .frame_interpolation import process_interp_vid_upload_logic, process_interp_pics_upload_logic
+from .vid2depth import process_depth_vid_upload_logic
 f_models_path = ph.models_path + '/Deforum'
 
-# Local gradio-to-frame-interoplation function. *Needs* to stay here since we do Root() and use gradio elements directly, to be changed in the future
+# START gradio-to-frame-interoplation/ upscaling functions
 def upload_vid_to_interpolate(file, engine, x_am, sl_enabled, sl_am, keep_imgs, in_vid_fps):
     # print msg and do nothing if vid not uploaded or interp_x not provided
     if not file or engine == 'None':
@@ -45,7 +46,7 @@ def upload_vid_to_depth(vid_to_depth_chosen_file, mode, thresholding, threshold_
     f_location, f_crf, f_preset = get_ffmpeg_params()
     
     process_depth_vid_upload_logic(vid_to_depth_chosen_file, mode, thresholding, threshold_value, threshold_value_max, adapt_block_size, adapt_c, invert, end_blur, midas_weight_vid2depth, vid_to_depth_chosen_file.orig_name, depth_keep_imgs, f_location, f_crf, f_preset, f_models_path)
-    
+# END gradio-to-frame-interoplation/ upscaling functions    
 def auto_hide_n_batch(choice):
     return gr.update(visible=True) if choice == -1 else gr.update(value=1, visible=False)
     
