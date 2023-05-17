@@ -129,7 +129,7 @@ def on_ui_tabs():
             settings_component_name_to_obj[key].value = value['value']
 
             
-    if opts.data.get("deforum_enable_persistent_settings"):
+    if opts.data.get("deforum_enable_persistent_settings", False):
         trigger_load_general_settings()
         
     return [(deforum_interface, "Deforum", "deforum_interface")]
