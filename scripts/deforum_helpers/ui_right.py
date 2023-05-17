@@ -5,7 +5,7 @@ from modules.ui import create_output_panel, wrap_gradio_call
 from webui import wrap_gradio_gpu_call
 from .run_deforum import run_deforum
 from .settings import save_settings, load_all_settings, load_video_settings
-from .ui import setup_deforum_setting_dictionary
+from .ui_left import setup_deforum_setting_dictionary
 import gradio as gr
 
 def on_ui_tabs():
@@ -15,6 +15,7 @@ def on_ui_tabs():
         basedirs.append('/content/gdrive/MyDrive/sd/stable-diffusion-webui') #hardcode as TheLastBen's colab seems to be the primal source
     for basedir in basedirs:
         sys.path.extend([os.path.join(deforum_folder_name, 'scripts', 'deforum_helpers', 'src')])
+
     with gr.Blocks(analytics_enabled=False) as deforum_interface:
         components = {}
         dummy_component = gr.Label(visible=False)
