@@ -10,7 +10,6 @@ from .general_utils import get_os, get_deforum_version, substitute_placeholders
 from .deforum_controlnet import controlnet_component_names
 from .defaults import get_guided_imgs_default_json, mask_fill_choices
 import tempfile
-# from .gradio_funcs import *
        
 def RootArgs():
     device = sh.device
@@ -146,7 +145,6 @@ def DeforumAnimArgs():
     hybrid_comp_mask_equalize = "None" # ['None','Before','After','Both']
     hybrid_comp_mask_auto_contrast = False 
     hybrid_comp_save_extra_frames = False 
-    #**Resume Animation:**
     resume_from_timestring = False 
     resume_timestring = "20230129210106" 
     enable_ddim_eta_scheduling = False
@@ -157,11 +155,10 @@ def DeforumAnimArgs():
     return locals()
     
 def DeforumArgs():
-    #**Image Settings**
-    W = 512 #
-    H = 512 #
-    W, H = map(lambda x: x - x % 64, (W, H))  # resize to integer multiple of 64
+    # set default image size and make sure to resize to multiples of 64 if needed
+    W, H = map(lambda x: x - x % 64, (512, 512))
     
+    # wether or not to show gradio's info section for all params in the ui. it's a realtime toggle
     show_info_on_ui = True
 
     #**Webui stuff**
@@ -179,17 +176,9 @@ def DeforumArgs():
     steps = 25 #
     scale = 7 #
     
-    dynamic_threshold = None
-    static_threshold = None
-
     #**Save & Display Settings**
     save_settings = True 
     save_sample_per_step = False
-
-    #**Prompt Settings**
-    prompt_weighting = False 
-    normalize_prompt_weights = True 
-    log_weighted_subprompts = False 
 
     #**Batch Settings**
     n_batch = 1 #

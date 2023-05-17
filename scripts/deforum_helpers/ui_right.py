@@ -12,7 +12,7 @@ def on_ui_tabs():
     deforum_folder_name = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-3])
     basedirs = [os.getcwd()]
     if 'google.colab' in sys.modules:
-        basedirs.append('/content/gdrive/MyDrive/sd/stable-diffusion-webui') #hardcode as TheLastBen's colab seems to be the primal source
+        basedirs.append('/content/gdrive/MyDrive/sd/stable-diffusion-webui') #for TheLastBen's colab
     for basedir in basedirs:
         sys.path.extend([os.path.join(deforum_folder_name, 'scripts', 'deforum_helpers', 'src')])
 
