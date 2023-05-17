@@ -64,7 +64,6 @@ def DeforumAnimArgs():
     near_schedule = "0: (200)"
     far_schedule = "0: (10000)"
     seed_schedule = '0:(s), 1:(-1), "max_f-2":(-1), "max_f-1":(s)'
-    pix2pix_img_cfg_scale = "1.5"
     pix2pix_img_cfg_scale_schedule = "0:(1.5)"
     enable_subseed_scheduling = False
     subseed_schedule = "0:(1)"
@@ -155,36 +154,26 @@ def DeforumAnimArgs():
 def DeforumArgs():
     # set default image size and make sure to resize to multiples of 64 if needed
     W, H = map(lambda x: x - x % 64, (512, 512))
-    
     # wether or not to show gradio's info section for all params in the ui. it's a realtime toggle
     show_info_on_ui = True
-
     #**Webui stuff**
     tiling = False
     restore_faces = False
     seed_enable_extras = False
-    subseed = -1
-    subseed_strength = 0
     seed_resize_from_w = 0
     seed_resize_from_h = 0
-    
     #**Sampling Settings**
     seed = -1 #
     sampler = 'euler_ancestral' # ["klms","dpm2","dpm2_ancestral","heun","euler","euler_ancestral","plms", "ddim"]
     steps = 25 #
-    scale = 7 #
-    
     #**Save & Display Settings**
     save_settings = True 
     save_sample_per_step = False
-
     #**Batch Settings**
     n_batch = 1 #
     batch_name = "Deforum_{timestring}" 
     seed_behavior = "iter" # ["iter","fixed","random","ladder","alternate","schedule"]
     seed_iter_N = 1
-    outdir = ""
-
     #**Init Settings**
     use_init = False
     strength = 0.8
@@ -202,19 +191,11 @@ def DeforumArgs():
     overlay_mask = True 
     # Blur edges of final overlay mask, if used. Minimum = 0 (no blur)
     mask_overlay_blur = 4
-
     fill = 1 #MASKARGSEXPANSION Todo : Rename and convert to same formatting as used in img2img masked content
     full_res_mask = True
     full_res_mask_padding = 4
     reroll_blank_frames = 'reroll' # reroll, interrupt, or ignore
     reroll_patience = 10
-
-    prompt = ""
-    timestring = ""
-    init_sample = None
-    mask_image = None
-    noise_mask = None
-    seed_internal = 0
 
     return locals()
 
@@ -239,7 +220,7 @@ def DeforumOutputArgs():
     make_gif = False
     delete_imgs = False # True will delete all imgs after a successful mp4 creation
     image_path = "C:/SD/20230124234916_%09d.png" 
-    mp4_path = "testvidmanualsettings.mp4" 
+    # mp4_path = "testvidmanualsettings.mp4" 
     add_soundtrack = 'None' # ["File","Init Video"]
     soundtrack_path = "https://deforum.github.io/a1/A1.mp3"
     # End-Run upscaling
@@ -267,58 +248,14 @@ dv = SimpleNamespace(**DeforumOutputArgs()) #default video args
 dr = SimpleNamespace(**RootArgs()) # ROOT args
 dloopArgs = SimpleNamespace(**LoopArgs())
 
-anim_args_names =   str(r'''animation_mode, max_frames, border,
-                        angle, zoom, translation_x, translation_y, translation_z, transform_center_x, transform_center_y,
-                        rotation_3d_x, rotation_3d_y, rotation_3d_z,
-                        enable_perspective_flip, enable_ddim_eta_scheduling, ddim_eta_schedule, enable_ancestral_eta_scheduling, ancestral_eta_schedule,
-                        perspective_flip_theta, perspective_flip_phi, perspective_flip_gamma, perspective_flip_fv,
-                        noise_schedule, strength_schedule, contrast_schedule, cfg_scale_schedule, pix2pix_img_cfg_scale_schedule,
-                        enable_subseed_scheduling, subseed_schedule, subseed_strength_schedule,
-                        enable_steps_scheduling, steps_schedule,
-                        fov_schedule, aspect_ratio_schedule, aspect_ratio_use_old_formula, near_schedule, far_schedule,
-                        seed_schedule,
-                        enable_sampler_scheduling, sampler_schedule,
-                        mask_schedule, use_noise_mask, noise_mask_schedule,
-                        enable_checkpoint_scheduling, checkpoint_schedule,
-                        enable_clipskip_scheduling, clipskip_schedule, enable_noise_multiplier_scheduling, noise_multiplier_schedule,
-                        kernel_schedule, sigma_schedule, amount_schedule, threshold_schedule,
-                        color_coherence, color_coherence_image_path, color_coherence_video_every_N_frames, color_force_grayscale, legacy_colormatch,
-                        diffusion_cadence, optical_flow_cadence, cadence_flow_factor_schedule,
-                        optical_flow_redo_generation, redo_flow_factor_schedule, diffusion_redo,
-                        noise_type, perlin_w, perlin_h, perlin_octaves, perlin_persistence,
-                        use_depth_warping, depth_algorithm ,midas_weight,
-                        padding_mode, sampling_mode, save_depth_maps,
-                        video_init_path, extract_nth_frame, extract_from_frame, extract_to_frame, overwrite_extracted_frames,
-                        use_mask_video, video_mask_path,
-                        resume_from_timestring, resume_timestring'''
-                    ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
-hybrid_args_names = str(r'''hybrid_generate_inputframes, hybrid_generate_human_masks, hybrid_use_first_frame_as_init_image,
-                        hybrid_motion, hybrid_motion_use_prev_img, hybrid_flow_consistency, hybrid_consistency_blur, hybrid_flow_method, hybrid_composite,
-                        hybrid_use_init_image, hybrid_comp_mask_type, hybrid_comp_mask_inverse,
-                        hybrid_comp_mask_equalize, hybrid_comp_mask_auto_contrast, hybrid_comp_save_extra_frames,
-                        hybrid_comp_alpha_schedule, hybrid_flow_factor_schedule,
-                        hybrid_comp_mask_blend_alpha_schedule, hybrid_comp_mask_contrast_schedule,
-                        hybrid_comp_mask_auto_contrast_cutoff_high_schedule, hybrid_comp_mask_auto_contrast_cutoff_low_schedule'''
-                    ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
-args_names =        str(r'''W, H, tiling, restore_faces, seed, sampler, seed_enable_extras,
-                        seed_resize_from_w, seed_resize_from_h, steps, n_batch, save_settings,
-                        save_sample_per_step, batch_name, seed_behavior, seed_iter_N, use_init, strength_0_no_init, strength, init_image,
-                        use_mask, use_alpha_as_mask, invert_mask, overlay_mask,
-                        mask_file, mask_contrast_adjust, mask_brightness_adjust, mask_overlay_blur,
-                        fill, full_res_mask, full_res_mask_padding, reroll_blank_frames,reroll_patience'''
-                    ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
-video_args_names =  str(r'''skip_video_creation,
-                            fps, make_gif, delete_imgs, add_soundtrack, soundtrack_path, r_upscale_video, r_upscale_model, r_upscale_factor, r_upscale_keep_imgs,
-                            store_frames_in_ram, frame_interpolation_engine, frame_interpolation_x_amount, frame_interpolation_slow_mo_enabled, frame_interpolation_slow_mo_amount, frame_interpolation_keep_imgs'''
-                    ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
-parseq_args_names = str(r'''parseq_manifest, parseq_use_deltas'''
-                    ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
-loop_args_names =   str(r'''use_looper, init_images, image_strength_schedule, blendFactorMax, blendFactorSlope, 
-                          tweening_frames_schedule, color_correction_factor'''
-                    ).replace("\n", "").replace("\r", "").replace(" ", "").split(',')
+anim_args_names = list(DeforumAnimArgs().keys())
+args_names = list(DeforumArgs().keys())
+video_args_names = list(DeforumOutputArgs().keys())
+parseq_args_names = list(ParseqArgs().keys())
+loop_args_names = list(LoopArgs().keys())
 
 def get_component_names():
-    return ['override_settings_with_file', 'custom_settings_file'] + anim_args_names +['animation_prompts', 'animation_prompts_positive', 'animation_prompts_negative'] + args_names + video_args_names + parseq_args_names + hybrid_args_names + loop_args_names + controlnet_component_names()
+    return ['override_settings_with_file', 'custom_settings_file'] + anim_args_names +['animation_prompts', 'animation_prompts_positive', 'animation_prompts_negative'] + args_names + video_args_names + parseq_args_names + loop_args_names + controlnet_component_names()
 
 def get_settings_component_names():
     return [name for name in get_component_names()] #if name not in video_args_names]
@@ -339,7 +276,7 @@ def pack_args(args_dict):
     return args_dict
     
 def pack_anim_args(args_dict):
-    return {name: args_dict[name] for name in (anim_args_names + hybrid_args_names)}
+    return {name: args_dict[name] for name in (anim_args_names)}
    
 def pack_video_args(args_dict):
     return {name: args_dict[name] for name in video_args_names}
