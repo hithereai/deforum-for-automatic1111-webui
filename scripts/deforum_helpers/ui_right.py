@@ -1,23 +1,20 @@
 import os, sys
 from .args import d, da, dp, dv, dr, dloopArgs, i1_store, i1_store_backup, get_component_names, get_settings_component_names, video_args_names
-from modules.ui import create_output_panel
 from modules.shared import opts, state
 from modules.ui import create_output_panel, wrap_gradio_call
 from webui import wrap_gradio_gpu_call
 from .run_deforum import run_deforum
 from .settings import save_settings, load_all_settings, load_video_settings
-
+from .ui import setup_deforum_setting_dictionary
 import gradio as gr
 
-deforum_folder_name = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-3])
-basedirs = [os.getcwd()]
-
 def on_ui_tabs():
+    deforum_folder_name = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-3])
+    basedirs = [os.getcwd()]
     if 'google.colab' in sys.modules:
         basedirs.append('/content/gdrive/MyDrive/sd/stable-diffusion-webui') #hardcode as TheLastBen's colab seems to be the primal source
     for basedir in basedirs:
         sys.path.extend([os.path.join(deforum_folder_name, 'scripts', 'deforum_helpers', 'src')])
-    from deforum_helpers.ui import setup_deforum_setting_dictionary
     with gr.Blocks(analytics_enabled=False) as deforum_interface:
         components = {}
         dummy_component = gr.Label(visible=False)
