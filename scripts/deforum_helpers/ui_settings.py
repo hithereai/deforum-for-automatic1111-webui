@@ -1,8 +1,7 @@
-from modules import script_callbacks, ui_components
 import gradio as gr
-
-from deforum_helpers.video_audio_utilities import find_ffmpeg_binary
+from modules import ui_components
 from modules.shared import opts, cmd_opts, state, OptionInfo
+from deforum_helpers.video_audio_utilities import find_ffmpeg_binary
 from deforum_helpers.subtitle_handler import get_user_values
 
 def on_ui_settings():
