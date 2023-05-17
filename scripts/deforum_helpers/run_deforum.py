@@ -63,16 +63,13 @@ def run_deforum(*args, **kwargs):
         root.initial_noise_multiplier = shared.opts.data.get("initial_noise_multiplier", 1.0)
         root.initial_ddim_eta = shared.opts.data.get("eta_ddim", 0.0)
         root.initial_ancestral_eta = shared.opts.data.get("eta_ancestral", 1.0)
-
-        root.basedirs = basedirs
-        for basedir in basedirs:
-            sys.path.extend([os.path.join(deforum_folder_name, 'scripts', 'deforum_helpers', 'src')])
-        
+       
         # clean up unused memory
         reset_frames_cache(root)
         gc.collect()
         torch.cuda.empty_cache()
-
+        
+        # Import them *here* or we add 3 seconds to initial webui launch-time. user doesn't feel it when we import inside the func:
         from deforum_helpers.render import render_animation
         from deforum_helpers.render_modes import render_input_video, render_animation_with_video_mask, render_interpolation
 
