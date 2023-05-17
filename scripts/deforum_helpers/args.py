@@ -1,15 +1,17 @@
+import os
+import time
+import json
+import tempfile
+from types import SimpleNamespace
+
 from modules.shared import cmd_opts
 from modules.processing import get_fixed_seed
 import modules.shared as sh
 import modules.paths as ph
-import os
-import time
-import json
-from types import SimpleNamespace
+
 from .general_utils import get_os, get_deforum_version, substitute_placeholders
 from .deforum_controlnet import controlnet_component_names
 from .defaults import get_guided_imgs_default_json, mask_fill_choices
-import tempfile
        
 def RootArgs():
     device = sh.device
@@ -67,35 +69,31 @@ def DeforumAnimArgs():
     enable_subseed_scheduling = False
     subseed_schedule = "0:(1)"
     subseed_strength_schedule = "0:(0)"
-    # Sampler Scheduling
-    enable_sampler_scheduling = False 
+    enable_sampler_scheduling = False  # Sampler Scheduling
     sampler_schedule = '0: ("Euler a")'
-    # Composable mask scheduling
-    use_noise_mask = False
+    use_noise_mask = False # Composable mask scheduling
     mask_schedule = '0: ("{video_mask}")'
     noise_mask_schedule = '0: ("{video_mask}")'
-    # Checkpoint Scheduling
-    enable_checkpoint_scheduling = False
+    enable_checkpoint_scheduling = False  # Checkpoint Scheduling
     checkpoint_schedule = '0: ("model1.ckpt"), 100: ("model2.safetensors")'
-    # CLIP skip Scheduling
-    enable_clipskip_scheduling = False 
+    enable_clipskip_scheduling = False  # CLIP skip Scheduling
     clipskip_schedule = '0: (2)'
-    # Noise Multiplier Scheduling
-    enable_noise_multiplier_scheduling = True
+    enable_noise_multiplier_scheduling = True # Noise Multiplier Scheduling
     noise_multiplier_schedule = '0: (1.05)'
+    # resume params
+    resume_from_timestring = False 
+    resume_timestring = "20230129210106" 
+    # DDIM AND Ancestral ETA scheds
+    enable_ddim_eta_scheduling = False
+    ddim_eta_schedule = "0:(0)"
+    enable_ancestral_eta_scheduling = False
+    ancestral_eta_schedule = "0:(1)"
     # Anti-blur
     amount_schedule = "0: (0.1)"
     kernel_schedule = "0: (5)"
     sigma_schedule = "0: (1.0)"
     threshold_schedule = "0: (0.0)"
-    # Hybrid video
-    hybrid_comp_alpha_schedule = "0:(0.5)" 
-    hybrid_comp_mask_blend_alpha_schedule = "0:(0.5)" 
-    hybrid_comp_mask_contrast_schedule = "0:(1)" 
-    hybrid_comp_mask_auto_contrast_cutoff_high_schedule = "0:(100)" 
-    hybrid_comp_mask_auto_contrast_cutoff_low_schedule = "0:(0)"
-    hybrid_flow_factor_schedule = "0:(1)"
-    #Coherence
+    # Coherence
     color_coherence = 'LAB' # ['None', 'HSV', 'LAB', 'RGB', 'Video Input', 'Image']
     color_coherence_image_path = ""
     color_coherence_video_every_N_frames = 1
@@ -107,14 +105,14 @@ def DeforumAnimArgs():
     optical_flow_redo_generation = 'None' #['None', 'RAFT', 'DIS Medium', 'DIS Fine', 'Farneback']
     redo_flow_factor_schedule = "0: (1)"
     diffusion_redo = '0'
-    #**Noise settings:**
+    # **Noise settings:**
     noise_type = 'perlin' # ['uniform', 'perlin']
     # Perlin params
     perlin_w = 8 
     perlin_h = 8 
     perlin_octaves = 4 
     perlin_persistence = 0.5 
-    #**3D Depth Warping:**
+    # **3D Depth Warping:**
     use_depth_warping = True 
     depth_algorithm = 'Midas-3-Hybrid' # ['Midas+AdaBins (old)','Zoe+AdaBins (old)', 'Midas-3-Hybrid','Midas-3.1-BeitLarge', 'AdaBins', 'Zoe', 'Leres'] Midas-3.1-BeitLarge is temporarily removed 04-05-23 until fixed
     midas_weight = 0.2 # midas/ zoe weight - only relevant in old/ legacy depth_algorithm modes. see above ^
@@ -130,6 +128,12 @@ def DeforumAnimArgs():
     use_mask_video = False 
     video_mask_path ='https://deforum.github.io/a1/VM1.mp4'
     #**Hybrid Video for 2D/3D Animation Mode:**
+    hybrid_comp_alpha_schedule = "0:(0.5)" 
+    hybrid_comp_mask_blend_alpha_schedule = "0:(0.5)" 
+    hybrid_comp_mask_contrast_schedule = "0:(1)" 
+    hybrid_comp_mask_auto_contrast_cutoff_high_schedule = "0:(100)" 
+    hybrid_comp_mask_auto_contrast_cutoff_low_schedule = "0:(0)"
+    hybrid_flow_factor_schedule = "0:(1)"
     hybrid_generate_inputframes = False 
     hybrid_generate_human_masks = "None" #['None','PNGs','Video', 'Both']
     hybrid_use_first_frame_as_init_image = True 
@@ -145,12 +149,6 @@ def DeforumAnimArgs():
     hybrid_comp_mask_equalize = "None" # ['None','Before','After','Both']
     hybrid_comp_mask_auto_contrast = False 
     hybrid_comp_save_extra_frames = False 
-    resume_from_timestring = False 
-    resume_timestring = "20230129210106" 
-    enable_ddim_eta_scheduling = False
-    ddim_eta_schedule = "0:(0)"
-    enable_ancestral_eta_scheduling = False
-    ancestral_eta_schedule = "0:(1)"
 
     return locals()
     
