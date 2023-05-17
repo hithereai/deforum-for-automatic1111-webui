@@ -11,7 +11,7 @@ import modules.paths as ph
 
 from .general_utils import get_os, get_deforum_version, substitute_placeholders
 from .deforum_controlnet import controlnet_component_names
-from .defaults import get_guided_imgs_default_json, mask_fill_choices
+from .defaults import get_guided_imgs_default_json
        
 def RootArgs():
     device = sh.device
