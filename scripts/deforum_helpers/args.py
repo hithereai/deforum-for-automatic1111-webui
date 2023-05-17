@@ -211,8 +211,6 @@ def DeforumArgs():
     reroll_blank_frames = 'reroll' # reroll, interrupt, or ignore
     reroll_patience = 10
 
-    n_samples = 1 # doesnt do anything
-
     prompt = ""
     timestring = ""
     init_sample = None

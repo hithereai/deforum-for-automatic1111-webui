@@ -28,7 +28,7 @@ def get_webui_sd_pipeline(args, root, frame):
     p.seed_resize_from_w = args.seed_resize_from_w
     p.seed_resize_from_h = args.seed_resize_from_h
     p.fill = args.fill
-    p.batch_size = args.n_samples
+    p.batch_size = 1
     p.seed = args.seed
     p.do_not_save_samples = True # Setting this to False will trigger webui's saving mechanism - and we will end up with duplicated files, and another folder within our destination folder - big no no.
     p.sampler_name = args.sampler
