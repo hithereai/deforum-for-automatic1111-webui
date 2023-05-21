@@ -3,6 +3,8 @@ from modules.ui_components import FormRow, FormColumn
 from .defaults import get_gradio_html, DeforumAnimPrompts
 from .video_audio_utilities import direct_stitch_vid_from_frames
 from .gradio_funcs import upload_vid_to_interpolate, upload_pics_to_interpolate, ncnn_upload_vid_to_upscale, upload_vid_to_depth
+import re
+import numexpr
 
 def create_gr_elem(d):
     # Capitalize and CamelCase the orig value under "type", which defines gr.inputs.type in lower_case.
@@ -51,6 +53,26 @@ def get_tab_run(d, da):
                 pix2pix_img_cfg_scale_schedule = create_gr_elem(da.pix2pix_img_cfg_scale_schedule)
     return {k: v for k, v in {**locals(), **vars()}.items()}
 
+def check_key_sch(value):
+    replacements = {'t': '1', 'max_f': '999999999'}  # static as we don't care for specific in here really
+    pattern = re.compile(r'\b(t|max_f)\b')
+    parsed_value = pattern.sub(lambda x: replacements[x.group()], value)
+    right_sides = [part.split(":")[1].strip() for part in parsed_value.split(",")]
+    issues = 0
+    for val in right_sides:
+        try:
+            numexpr.evaluate(val)
+        except Exception as e:
+            issues += 1
+            print(f"Numexpr error: {e}")
+    return issues
+
+def andy_test_func(key_sch, t2):
+    issues = check_key_sch(key_sch)
+    if issues != 0:
+        print("CHANGE ELEM ID...")
+    print(issues)
+
 def get_tab_keyframes(d, da, dloopArgs):
     with gr.TabItem('Keyframes'):  # TODO make a some sort of the original dictionary parsing
         with FormRow():
@@ -87,6 +109,7 @@ def get_tab_keyframes(d, da, dloopArgs):
             with gr.TabItem('Strength'):
                 with FormRow():
                     strength_schedule = create_gr_elem(da.strength_schedule)
+                    strength_schedule.blur(fn=andy_test_func, inputs=[strength_schedule, 'test'], outputs=[])
             with gr.TabItem('CFG'):
                 with FormRow():
                     cfg_scale_schedule = create_gr_elem(da.cfg_scale_schedule)
