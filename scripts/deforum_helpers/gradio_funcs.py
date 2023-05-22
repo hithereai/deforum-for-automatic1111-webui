@@ -52,11 +52,11 @@ def handle_change_functions(l_vars):
     l_vars['r_upscale_model'].change(fn=update_r_upscale_factor, inputs=l_vars['r_upscale_model'], outputs=l_vars['r_upscale_factor'])
     l_vars['ncnn_upscale_model'].change(fn=update_r_upscale_factor, inputs=l_vars['ncnn_upscale_model'], outputs=l_vars['ncnn_upscale_factor'])
     l_vars['ncnn_upscale_model'].change(update_upscale_out_res_by_model_name, inputs=[l_vars['ncnn_upscale_in_vid_res'], l_vars['ncnn_upscale_model']],
-                                          outputs=l_vars['ncnn_upscale_out_vid_res'])
+                                        outputs=l_vars['ncnn_upscale_out_vid_res'])
     l_vars['ncnn_upscale_factor'].change(update_upscale_out_res, inputs=[l_vars['ncnn_upscale_in_vid_res'], l_vars['ncnn_upscale_factor']], outputs=l_vars['ncnn_upscale_out_vid_res'])
     l_vars['vid_to_upscale_chosen_file'].change(vid_upscale_gradio_update_stats, inputs=[l_vars['vid_to_upscale_chosen_file'], l_vars['ncnn_upscale_factor']],
-                                                  outputs=[l_vars['ncnn_upscale_in_vid_fps_ui_window'], l_vars['ncnn_upscale_in_vid_frame_count_window'], l_vars['ncnn_upscale_in_vid_res'],
-                                                           l_vars['ncnn_upscale_out_vid_res']])
+                                                outputs=[l_vars['ncnn_upscale_in_vid_fps_ui_window'], l_vars['ncnn_upscale_in_vid_frame_count_window'], l_vars['ncnn_upscale_in_vid_res'],
+                                                         l_vars['ncnn_upscale_out_vid_res']])
     l_vars['hybrid_comp_mask_type'].change(fn=hide_if_none, inputs=l_vars['hybrid_comp_mask_type'], outputs=l_vars['hybrid_comp_mask_row'])
     hybrid_motion_outputs = [l_vars['hybrid_flow_method'], l_vars['hybrid_flow_factor_schedule'], l_vars['hybrid_flow_consistency'], l_vars['hybrid_consistency_blur'],
                              l_vars['hybrid_motion_use_prev_img']]
@@ -80,12 +80,12 @@ def handle_change_functions(l_vars):
         l_vars['skip_video_creation'].change(fn=change_visibility_from_skip_video, inputs=l_vars['skip_video_creation'], outputs=output)
     l_vars['frame_interpolation_slow_mo_enabled'].change(fn=hide_if_false, inputs=l_vars['frame_interpolation_slow_mo_enabled'], outputs=l_vars['frame_interp_slow_mo_amount_column'])
     l_vars['frame_interpolation_engine'].change(fn=change_interp_x_max_limit, inputs=[l_vars['frame_interpolation_engine'], l_vars['frame_interpolation_x_amount']],
-                                                  outputs=l_vars['frame_interpolation_x_amount'])
+                                                outputs=l_vars['frame_interpolation_x_amount'])
     # Populate the FPS and FCount values as soon as a video is uploaded to the FileUploadBox (vid_to_interpolate_chosen_file)
     l_vars['vid_to_interpolate_chosen_file'].change(gradio_f_interp_get_fps_and_fcount,
-                                                      inputs=[l_vars['vid_to_interpolate_chosen_file'], l_vars['frame_interpolation_x_amount'], l_vars['frame_interpolation_slow_mo_enabled'],
-                                                              l_vars['frame_interpolation_slow_mo_amount']],
-                                                      outputs=[l_vars['in_vid_fps_ui_window'], l_vars['in_vid_frame_count_window'], l_vars['out_interp_vid_estimated_fps']])
+                                                    inputs=[l_vars['vid_to_interpolate_chosen_file'], l_vars['frame_interpolation_x_amount'], l_vars['frame_interpolation_slow_mo_enabled'],
+                                                            l_vars['frame_interpolation_slow_mo_amount']],
+                                                    outputs=[l_vars['in_vid_fps_ui_window'], l_vars['in_vid_frame_count_window'], l_vars['out_interp_vid_estimated_fps']])
     l_vars['vid_to_interpolate_chosen_file'].change(fn=hide_interp_stats, inputs=[l_vars['vid_to_interpolate_chosen_file']], outputs=[l_vars['interp_live_stats_row']])
     interp_hide_list = [l_vars['frame_interpolation_slow_mo_enabled'], l_vars['frame_interpolation_keep_imgs'], l_vars['frame_interp_amounts_row'], l_vars['interp_existing_video_row']]
     for output in interp_hide_list:
