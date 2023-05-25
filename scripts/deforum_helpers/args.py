@@ -192,7 +192,7 @@ def DeforumAnimArgs():
         "aspect_ratio_schedule": {
             "label": "Aspect Ratio schedule",
             "type": "textbox",
-            "value": "0: (25)",
+            "value": "0: (1)",
             "info": "adjusts the aspect ratio for the depth calculations"
         },
         "aspect_ratio_use_old_formula": {
@@ -693,9 +693,9 @@ def DeforumArgs():
         "W": {
             "label": "Width",
             "type": "slider",
-            "minimum": 8,
+            "minimum": 64,
             "maximum": 2048,
-            "step": 8,
+            "step": 64,
             "value": 512,
         },
         "H": {
