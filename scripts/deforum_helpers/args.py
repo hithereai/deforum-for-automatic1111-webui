@@ -857,9 +857,8 @@ def DeforumArgs():
         "fill": {
             "label": "Mask fill",
             "type": "radio",
-            "radio_type": "index",
             "choices": ['fill', 'original', 'latent noise', 'latent nothing'],
-            "value": 1,
+            "value": "fill",
             "info": ""
         },
         "full_res_mask": {
